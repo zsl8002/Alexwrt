@@ -52,6 +52,10 @@ jobs:
           cd openwrt
           git log -1 --format='%H %s' > "$GITHUB_WORKSPACE/base-commit.txt"
       - name: Integrate PassWall2 and configure
+        env:
+          # OpenWrt 25.12's packages feed provides Go 1.26.x.
+          # Xray 26.11.x requires Go 1.27 and cannot build with that toolchain.
+          ALEXWRT_XRAY_COMPAT: '26.7.11'
         run: |
           cp config/pve-x86_64.config openwrt/.config
           bash scripts/add-passwall2.sh "$GITHUB_WORKSPACE/openwrt"
