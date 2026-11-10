@@ -59,14 +59,14 @@ jobs:
           bash "$GITHUB_WORKSPACE/scripts/prepare-pve-build.sh" "$GITHUB_WORKSPACE/openwrt"
           ./scripts/feeds install -a
 
-          # Prosody is not selected; its current feed recipe references Lua 5.4
-          # modules absent from this stable feed. Keep the feed checkout intact.
+          # Prosody is not selected; its current recipe references Lua 5.4
+          # modules absent from this stable feed. Remove only its package link.
           if ! grep -qx 'CONFIG_PACKAGE_prosody=y' .config; then
             rm -f package/feeds/packages/prosody
           fi
 
-          # Avoid an upstream, unselected Weechat Kconfig dependency cycle.
-          # Only remove package links; retain the complete feed repositories.
+          # Avoid the unselected upstream Weechat Kconfig dependency cycle.
+          # Keep feed repositories intact and remove only these package links.
           if ! grep -Eq '^CONFIG_PACKAGE_(luci-app-weechat|weechat-full|weechat-minimal)=y$' .config; then
             rm -f package/feeds/*/luci-app-weechat
             rm -f package/feeds/*/weechat-full
@@ -75,78 +75,9 @@ jobs:
 
           make defconfig
           grep -qx 'GO_DEFAULT_VERSION:=1.27' feeds/packages/lang/golang/golang-values.mk
-          grep -q '^CONFIG_PACKAGE_xray-core=y"$(nproc)" download
-      - name: Compile
-        run: cd openwrt && make -j"$(nproc)" V=s
-      - name: Collect and validate
-        run: |
-          set -Eeuo pipefail
-          mkdir -p out
-          find openwrt/bin/targets -type f \( -name '*generic*combined*.img.gz' -o -name '*generic*ext4-combined*.img.gz' -o -name '*generic*rootfs*.tar.gz' \) -exec cp -v {} out/ \;
-          test -n "$(find out -type f)"
-          cp openwrt/.config out/config.txt
-          cp base-commit.txt upstream-commits.txt out/
-          (cd out && sha256sum * > SHA256SUMS)
-      - uses: actions/upload-artifact@v5
-        with:
-          name: AlexWrt-PVE-x86_64-${{ steps.version.outputs.ref }}-${{ github.run_number }}
-          path: out/*
-          retention-days: 30
-      - name: Publish release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          TAG="pve-${{ steps.version.outputs.ref }}-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
-          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --title "AlexWrt PVE x86_64 $TAG" --notes 'OpenWrt stable base with PassWall2 source integration. ImmortalWrt feed overlay requires per-package compatibility validation.'
- .config
-          grep -q '^CONFIG_PACKAGE_luci-app-passwall2=y"$(nproc)" download
-      - name: Compile
-        run: cd openwrt && make -j"$(nproc)" V=s
-      - name: Collect and validate
-        run: |
-          set -Eeuo pipefail
-          mkdir -p out
-          find openwrt/bin/targets -type f \( -name '*generic*combined*.img.gz' -o -name '*generic*ext4-combined*.img.gz' -o -name '*generic*rootfs*.tar.gz' \) -exec cp -v {} out/ \;
-          test -n "$(find out -type f)"
-          cp openwrt/.config out/config.txt
-          cp base-commit.txt upstream-commits.txt out/
-          (cd out && sha256sum * > SHA256SUMS)
-      - uses: actions/upload-artifact@v5
-        with:
-          name: AlexWrt-PVE-x86_64-${{ steps.version.outputs.ref }}-${{ github.run_number }}
-          path: out/*
-          retention-days: 30
-      - name: Publish release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          TAG="pve-${{ steps.version.outputs.ref }}-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
-          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --title "AlexWrt PVE x86_64 $TAG" --notes 'OpenWrt stable base with PassWall2 source integration. ImmortalWrt feed overlay requires per-package compatibility validation.'
- .config
-          grep -q '^CONFIG_PACKAGE_sing-box=y"$(nproc)" download
-      - name: Compile
-        run: cd openwrt && make -j"$(nproc)" V=s
-      - name: Collect and validate
-        run: |
-          set -Eeuo pipefail
-          mkdir -p out
-          find openwrt/bin/targets -type f \( -name '*generic*combined*.img.gz' -o -name '*generic*ext4-combined*.img.gz' -o -name '*generic*rootfs*.tar.gz' \) -exec cp -v {} out/ \;
-          test -n "$(find out -type f)"
-          cp openwrt/.config out/config.txt
-          cp base-commit.txt upstream-commits.txt out/
-          (cd out && sha256sum * > SHA256SUMS)
-      - uses: actions/upload-artifact@v5
-        with:
-          name: AlexWrt-PVE-x86_64-${{ steps.version.outputs.ref }}-${{ github.run_number }}
-          path: out/*
-          retention-days: 30
-      - name: Publish release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          TAG="pve-${{ steps.version.outputs.ref }}-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
-          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --title "AlexWrt PVE x86_64 $TAG" --notes 'OpenWrt stable base with PassWall2 source integration. ImmortalWrt feed overlay requires per-package compatibility validation.'
- .config
+          grep -q '^CONFIG_PACKAGE_xray-core=y$' .config
+          grep -q '^CONFIG_PACKAGE_luci-app-passwall2=y$' .config
+          grep -q '^CONFIG_PACKAGE_sing-box=y$' .config
           make -j"$(nproc)" download
       - name: Compile
         run: cd openwrt && make -j"$(nproc)" V=s
