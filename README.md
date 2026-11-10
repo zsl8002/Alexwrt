@@ -15,7 +15,7 @@
 2. PVE：每日解析 OpenWrt 最新正式稳定 release tag，以该 tag 为基础编译 x86_64。保留 OpenWrt 官方 feeds；仅将 packages feed 的 Go 工具链目录更新到上游 master（当前 Xray-core 需要 Go 1.27，而 OpenWrt 25.12 稳定 feed 默认 Go 1.26），其余 packages feed 仍使用稳定分支。ImmortalWrt 软件包生态作为兼容层逐项验证后引入，不能把 ImmortalWrt 整个发行版 feed 未经验证混入 OpenWrt 主线。
 
 ## PassWall2、依赖与签名
-PassWall2 和 passwall-packages 在构建时从上游克隆并记录 commit，优先从源码编译进固件。预选依赖包括 xray-core、sing-box、v2ray-geoip、v2ray-geosite、tcping、geoview。
+PassWall2 和 passwall-packages 在构建时从上游克隆并记录 commit，优先从源码编译进固件。预选依赖包括 xray-core、sing-box、v2ray-geoip、v2ray-geosite、tcping、geoview。PVE 的 OpenWrt 25.12 软件包 feed 当前提供 Go 1.26.x，因此 PVE 构建将 Xray-core 固定到上游 26.7.11（其 go.mod 要求 Go 1.26），并使用上游公布的源码 SHA256；待基础 Go 工具链升级到 1.27 后再解除此兼容性固定。AX6600 构建不应用该 PVE 专用版本固定。
 
 不使用 apk add --allow-untrusted，不关闭签名校验，不把本地临时 key 当作官方 key。PassWall 上游 APK feed 的签名公钥必须与实际索引签名匹配；遇到 key 下载失败、证书时间错误或验签失败时必须停止，不得绕过。
 
