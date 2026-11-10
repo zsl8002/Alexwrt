@@ -31,8 +31,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           INPUT_REF: ${{ inputs.openwrt_ref }}
         run: |
-          if [ -n "$INPUT_REF" ]; then REF="$INPUT_REF"; else REF="$(gh release list --repo openwrt/openwrt --limit 100 --json tagName,isPrerelease --jq '[.[] | select(.isPrerelease == false) | .tagName] | .[0]')"; fi
-          test -n "$REF" && test "$REF" != null
+          set -euo pipefail
+          if [ -n "$INPUT_REF" ]; then
+            REF="$INPUT_REF"
+            git ls-remote --exit-code --refs https://github.com/openwrt/openwrt.git "refs/tags/$REF" >/dev/null
+          else
+            # The /releases/latest endpoint excludes prereleases and avoids
+            # gh release list's JSON/JQ shape ambiguity.
+            REF="$(gh api repos/openwrt/openwrt/releases/latest --jq '.tag_name')"
+          fi
+          if [ -z "$REF" ] || [ "$REF" = "null" ]; then
+            echo "Unable to resolve a valid stable OpenWrt release tag" >&2
+            exit 1
+          fi
+          echo "Selected OpenWrt stable tag: $REF"
           echo "ref=$REF" >> "$GITHUB_OUTPUT"
       - name: Clone OpenWrt stable
         run: |
