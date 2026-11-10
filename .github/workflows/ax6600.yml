@@ -1,0 +1,57 @@
+name: AX6600 JDCloud RE-CS-02
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 19 * * *'
+  push:
+    paths: ['.github/workflows/ax6600.yml', 'config/ax6600.config', 'scripts/**']
+permissions:
+  contents: write
+concurrency:
+  group: ax6600-build
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses-dev libssl-dev python3-setuptools rsync swig unzip zlib1g-dev file wget curl jq ccache
+      - name: Clone IPQ platform source
+        run: |
+          git clone --depth 1 https://github.com/ones20250/immortalwrt_ipq.git openwrt
+          cd openwrt
+          git log -1 --format='%H %s' > "$GITHUB_WORKSPACE/base-commit.txt"
+      - name: Integrate PassWall2 and configure
+        run: |
+          cp config/ax6600.config openwrt/.config
+          bash scripts/add-passwall2.sh "$GITHUB_WORKSPACE/openwrt"
+          cd openwrt
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          make defconfig
+          make -j"$(nproc)" download
+      - name: Compile
+        run: cd openwrt && make -j"$(nproc)" V=s
+      - name: Collect and validate
+        run: |
+          mkdir -p out
+          find openwrt/bin/targets -type f \( -name '*jdcloud*factory*.bin' -o -name '*jdcloud*sysupgrade*.bin' -o -name '*jdcloud*factory*.img' -o -name '*jdcloud*sysupgrade*.img' \) -exec cp -v {} out/ \;
+          test -n "$(find out -type f)"
+          cp openwrt/.config out/config.txt
+          cp base-commit.txt upstream-commits.txt out/
+          (cd out && sha256sum * > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AlexWrt-AX6600-${{ github.run_number }}
+          path: out/*
+          retention-days: 30
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="ax6600-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --title "AlexWrt AX6600 $TAG" --notes 'JDCloud RE-CS-02 build. Verify SHA256SUMS and image type before flashing.'
