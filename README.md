@@ -12,14 +12,14 @@
 
 ## 两条构建线
 1. AX6600：采用 ones20250 的 IPQ60xx 设备适配源码，目标固定为 qualcommax/ipq60xx JDCloud RE-CS-02。设备适配、分区布局和无线驱动不能简单替换成通用 OpenWrt 主线。
-2. PVE：每日解析 OpenWrt 最新正式稳定 release tag，以该 tag 为基础编译 x86_64。保留 OpenWrt 官方 feeds；ImmortalWrt 软件包生态作为兼容层逐项验证后引入，不能把 ImmortalWrt 整个发行版 feed 未经验证混入 OpenWrt 主线。
+2. PVE：每日解析 OpenWrt 最新正式稳定 release tag，以该 tag 为基础编译 x86_64。保留 OpenWrt 官方 feeds；仅将 packages feed 的 Go 工具链目录更新到上游 master（当前 Xray-core 需要 Go 1.27，而 OpenWrt 25.12 稳定 feed 默认 Go 1.26），其余 packages feed 仍使用稳定分支。ImmortalWrt 软件包生态作为兼容层逐项验证后引入，不能把 ImmortalWrt 整个发行版 feed 未经验证混入 OpenWrt 主线。
 
 ## PassWall2、依赖与签名
 PassWall2 和 passwall-packages 在构建时从上游克隆并记录 commit，优先从源码编译进固件。预选依赖包括 xray-core、sing-box、v2ray-geoip、v2ray-geosite、tcping、geoview。
 
 不使用 apk add --allow-untrusted，不关闭签名校验，不把本地临时 key 当作官方 key。PassWall 上游 APK feed 的签名公钥必须与实际索引签名匹配；遇到 key 下载失败、证书时间错误或验签失败时必须停止，不得绕过。
 
-当前首版采用源码编译预装 PassWall2，尚未宣称已配置可在线更新的 AlexWrt 自有签名 APK/IPK 仓库。后续自有 feed 必须使用 GitHub Secrets 中的专用私钥签名，并在镜像内预置对应公钥。
+PVE 构建会跳过未选入固件的 Prosody feed 包：当前稳定 feed 中该包引用的四个 Lua 5.4 模块不可用，且 Prosody 不属于本固件功能范围。不会修改官方 Prosody 配方或关闭依赖检查。当前首版采用源码编译预装 PassWall2，尚未宣称已配置可在线更新的 AlexWrt 自有签名 APK/IPK 仓库。后续自有 feed 必须使用 GitHub Secrets 中的专用私钥签名，并在镜像内预置对应公钥。
 
 ## 更新
 - 软件包：使用系统原生包管理器及发行版官方签名仓库。PassWall2 更新随本项目成功构建的固件发布；自有签名 feed 部署完成前，不会伪称可从第三方仓库无缝更新。
