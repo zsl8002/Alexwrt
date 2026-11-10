@@ -57,7 +57,7 @@ jobs:
           bash scripts/add-passwall2.sh "$GITHUB_WORKSPACE/openwrt"
           cd openwrt
           ./scripts/feeds update -a
-          bash scripts/prepare-pve-build.sh "$GITHUB_WORKSPACE/openwrt"
+          bash "$GITHUB_WORKSPACE/scripts/prepare-pve-build.sh" "$GITHUB_WORKSPACE/openwrt"
           ./scripts/feeds install -a
           # Prosody is not selected by the PVE config. The current packages-feed
           # recipe references Lua 5.4 modules absent from this OpenWrt stable feed;
