@@ -52,10 +52,6 @@ jobs:
           cd openwrt
           git log -1 --format='%H %s' > "$GITHUB_WORKSPACE/base-commit.txt"
       - name: Integrate PassWall2 and configure
-        env:
-          # OpenWrt 25.12's packages feed provides Go 1.26.x.
-          # Xray 26.11.x requires Go 1.27 and cannot build with that toolchain.
-          ALEXWRT_XRAY_COMPAT: '26.7.11'
         run: |
           cp config/pve-x86_64.config openwrt/.config
           bash scripts/add-passwall2.sh "$GITHUB_WORKSPACE/openwrt"
@@ -63,13 +59,10 @@ jobs:
           ./scripts/feeds update -a
           bash scripts/prepare-pve-build.sh "$GITHUB_WORKSPACE/openwrt"
           ./scripts/feeds install -a
-          # Prosody is not selected in the PVE image. Its current packages-feed
-          # recipe references four unavailable Lua 5.4 modules on this stable
-          # branch, so do not install this unrelated package into the build tree.
-          if ! grep -qx 'CONFIG_PACKAGE_prosody=y' .config; then
-            rm -rf package/feeds/packages/prosody
-          fi
           make defconfig
+          # Fail early if the Xray package still resolves to an unsupported Go toolchain.
+          grep -qx 'GO_DEFAULT_VERSION:=1.27' feeds/packages/lang/golang/golang-values.mk
+          grep -q '^CONFIG_PACKAGE_xray-core=y$' .config
           make -j"$(nproc)" download
       - name: Compile
         run: cd openwrt && make -j"$(nproc)" V=s
