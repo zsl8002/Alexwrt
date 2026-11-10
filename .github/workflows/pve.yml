@@ -36,8 +36,6 @@ jobs:
             REF="$INPUT_REF"
             git ls-remote --exit-code --refs https://github.com/openwrt/openwrt.git "refs/tags/$REF" >/dev/null
           else
-            # The /releases/latest endpoint excludes prereleases and avoids
-            # gh release list's JSON/JQ shape ambiguity.
             REF="$(gh api repos/openwrt/openwrt/releases/latest --jq '.tag_name')"
           fi
           if [ -z "$REF" ] || [ "$REF" = "null" ]; then
@@ -53,55 +51,29 @@ jobs:
           git log -1 --format='%H %s' > "$GITHUB_WORKSPACE/base-commit.txt"
       - name: Integrate PassWall2 and configure
         run: |
+          set -Eeuo pipefail
           cp config/pve-x86_64.config openwrt/.config
           bash scripts/add-passwall2.sh "$GITHUB_WORKSPACE/openwrt"
           cd openwrt
           ./scripts/feeds update -a
           bash "$GITHUB_WORKSPACE/scripts/prepare-pve-build.sh" "$GITHUB_WORKSPACE/openwrt"
           ./scripts/feeds install -a
-          # Prosody is not selected by the PVE config. The current packages-feed
-          # recipe references Lua 5.4 modules absent from this OpenWrt stable feed;
-          # remove this unrelated package before Kconfig scans package Makefiles.
+
+          # Prosody is not selected; its current feed recipe references Lua 5.4
+          # modules absent from this stable feed. Keep the feed checkout intact.
           if ! grep -qx 'CONFIG_PACKAGE_prosody=y' .config; then
-            rm -rf package/feeds/packages/prosody
+            rm -f package/feeds/packages/prosody
           fi
-          # The upstream weechat feed currently has a circular Kconfig
-          # dependency: luci-app-weechat -> weechat-full -> weechat-minimal
-          # -> luci-app-weechat. These packages are not part of this image.
-          # Keep the complete feeds checkout, but omit only their unselected
-          # package links so they cannot poison the global Kconfig scan.
-          if ! grep -Eq '^CONFIG_PACKAGE_(luci-app-weechat|weechat-full|weechat-minimal)=y
-          # Fail early if the Xray package still resolves to an unsupported Go toolchain.
-          grep -qx 'GO_DEFAULT_VERSION:=1.27' feeds/packages/lang/golang/golang-values.mk
-          grep -q '^CONFIG_PACKAGE_xray-core=y$' .config
-          make -j"$(nproc)" download
-      - name: Compile
-        run: cd openwrt && make -j"$(nproc)" V=s
-      - name: Collect and validate
-        run: |
-          mkdir -p out
-          find openwrt/bin/targets -type f \( -name '*generic*combined*.img.gz' -o -name '*generic*ext4-combined*.img.gz' -o -name '*generic*rootfs*.tar.gz' \) -exec cp -v {} out/ \;
-          test -n "$(find out -type f)"
-          cp openwrt/.config out/config.txt
-          cp base-commit.txt upstream-commits.txt out/
-          (cd out && sha256sum * > SHA256SUMS)
-      - uses: actions/upload-artifact@v4
-        with:
-          name: AlexWrt-PVE-x86_64-${{ steps.version.outputs.ref }}-${{ github.run_number }}
-          path: out/*
-          retention-days: 30
-      - name: Publish release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          TAG="pve-${{ steps.version.outputs.ref }}-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
-          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --title "AlexWrt PVE x86_64 $TAG" --notes 'OpenWrt stable base with PassWall2 source integration. ImmortalWrt feed overlay requires per-package compatibility validation.' .config; then
+
+          # Avoid an upstream, unselected Weechat Kconfig dependency cycle.
+          # Only remove package links; retain the complete feed repositories.
+          if ! grep -Eq '^CONFIG_PACKAGE_(luci-app-weechat|weechat-full|weechat-minimal)=y$' .config; then
             rm -f package/feeds/*/luci-app-weechat
             rm -f package/feeds/*/weechat-full
             rm -f package/feeds/*/weechat-minimal
           fi
+
           make defconfig
-          # Fail early if the Xray package still resolves to an unsupported Go toolchain.
           grep -qx 'GO_DEFAULT_VERSION:=1.27' feeds/packages/lang/golang/golang-values.mk
           grep -q '^CONFIG_PACKAGE_xray-core=y$' .config
           make -j"$(nproc)" download
@@ -109,6 +81,7 @@ jobs:
         run: cd openwrt && make -j"$(nproc)" V=s
       - name: Collect and validate
         run: |
+          set -Eeuo pipefail
           mkdir -p out
           find openwrt/bin/targets -type f \( -name '*generic*combined*.img.gz' -o -name '*generic*ext4-combined*.img.gz' -o -name '*generic*rootfs*.tar.gz' \) -exec cp -v {} out/ \;
           test -n "$(find out -type f)"
