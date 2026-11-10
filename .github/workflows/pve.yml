@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install build dependencies
         run: |
           sudo apt-get update
@@ -75,7 +75,78 @@ jobs:
 
           make defconfig
           grep -qx 'GO_DEFAULT_VERSION:=1.27' feeds/packages/lang/golang/golang-values.mk
-          grep -q '^CONFIG_PACKAGE_xray-core=y$' .config
+          grep -q '^CONFIG_PACKAGE_xray-core=y"$(nproc)" download
+      - name: Compile
+        run: cd openwrt && make -j"$(nproc)" V=s
+      - name: Collect and validate
+        run: |
+          set -Eeuo pipefail
+          mkdir -p out
+          find openwrt/bin/targets -type f \( -name '*generic*combined*.img.gz' -o -name '*generic*ext4-combined*.img.gz' -o -name '*generic*rootfs*.tar.gz' \) -exec cp -v {} out/ \;
+          test -n "$(find out -type f)"
+          cp openwrt/.config out/config.txt
+          cp base-commit.txt upstream-commits.txt out/
+          (cd out && sha256sum * > SHA256SUMS)
+      - uses: actions/upload-artifact@v5
+        with:
+          name: AlexWrt-PVE-x86_64-${{ steps.version.outputs.ref }}-${{ github.run_number }}
+          path: out/*
+          retention-days: 30
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="pve-${{ steps.version.outputs.ref }}-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --title "AlexWrt PVE x86_64 $TAG" --notes 'OpenWrt stable base with PassWall2 source integration. ImmortalWrt feed overlay requires per-package compatibility validation.'
+ .config
+          grep -q '^CONFIG_PACKAGE_luci-app-passwall2=y"$(nproc)" download
+      - name: Compile
+        run: cd openwrt && make -j"$(nproc)" V=s
+      - name: Collect and validate
+        run: |
+          set -Eeuo pipefail
+          mkdir -p out
+          find openwrt/bin/targets -type f \( -name '*generic*combined*.img.gz' -o -name '*generic*ext4-combined*.img.gz' -o -name '*generic*rootfs*.tar.gz' \) -exec cp -v {} out/ \;
+          test -n "$(find out -type f)"
+          cp openwrt/.config out/config.txt
+          cp base-commit.txt upstream-commits.txt out/
+          (cd out && sha256sum * > SHA256SUMS)
+      - uses: actions/upload-artifact@v5
+        with:
+          name: AlexWrt-PVE-x86_64-${{ steps.version.outputs.ref }}-${{ github.run_number }}
+          path: out/*
+          retention-days: 30
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="pve-${{ steps.version.outputs.ref }}-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --title "AlexWrt PVE x86_64 $TAG" --notes 'OpenWrt stable base with PassWall2 source integration. ImmortalWrt feed overlay requires per-package compatibility validation.'
+ .config
+          grep -q '^CONFIG_PACKAGE_sing-box=y"$(nproc)" download
+      - name: Compile
+        run: cd openwrt && make -j"$(nproc)" V=s
+      - name: Collect and validate
+        run: |
+          set -Eeuo pipefail
+          mkdir -p out
+          find openwrt/bin/targets -type f \( -name '*generic*combined*.img.gz' -o -name '*generic*ext4-combined*.img.gz' -o -name '*generic*rootfs*.tar.gz' \) -exec cp -v {} out/ \;
+          test -n "$(find out -type f)"
+          cp openwrt/.config out/config.txt
+          cp base-commit.txt upstream-commits.txt out/
+          (cd out && sha256sum * > SHA256SUMS)
+      - uses: actions/upload-artifact@v5
+        with:
+          name: AlexWrt-PVE-x86_64-${{ steps.version.outputs.ref }}-${{ github.run_number }}
+          path: out/*
+          retention-days: 30
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="pve-${{ steps.version.outputs.ref }}-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --title "AlexWrt PVE x86_64 $TAG" --notes 'OpenWrt stable base with PassWall2 source integration. ImmortalWrt feed overlay requires per-package compatibility validation.'
+ .config
           make -j"$(nproc)" download
       - name: Compile
         run: cd openwrt && make -j"$(nproc)" V=s
@@ -88,7 +159,7 @@ jobs:
           cp openwrt/.config out/config.txt
           cp base-commit.txt upstream-commits.txt out/
           (cd out && sha256sum * > SHA256SUMS)
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: AlexWrt-PVE-x86_64-${{ steps.version.outputs.ref }}-${{ github.run_number }}
           path: out/*
