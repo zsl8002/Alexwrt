@@ -57,7 +57,14 @@ jobs:
           bash scripts/add-passwall2.sh "$GITHUB_WORKSPACE/openwrt"
           cd openwrt
           ./scripts/feeds update -a
+          bash scripts/prepare-pve-build.sh "$GITHUB_WORKSPACE/openwrt"
           ./scripts/feeds install -a
+          # Prosody is not selected in the PVE image. Its current packages-feed
+          # recipe references four unavailable Lua 5.4 modules on this stable
+          # branch, so do not install this unrelated package into the build tree.
+          if ! grep -qx 'CONFIG_PACKAGE_prosody=y' .config; then
+            rm -rf package/feeds/packages/prosody
+          fi
           make defconfig
           make -j"$(nproc)" download
       - name: Compile
