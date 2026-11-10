@@ -65,6 +65,41 @@ jobs:
           if ! grep -qx 'CONFIG_PACKAGE_prosody=y' .config; then
             rm -rf package/feeds/packages/prosody
           fi
+          # The upstream weechat feed currently has a circular Kconfig
+          # dependency: luci-app-weechat -> weechat-full -> weechat-minimal
+          # -> luci-app-weechat. These packages are not part of this image.
+          # Keep the complete feeds checkout, but omit only their unselected
+          # package links so they cannot poison the global Kconfig scan.
+          if ! grep -Eq '^CONFIG_PACKAGE_(luci-app-weechat|weechat-full|weechat-minimal)=y
+          # Fail early if the Xray package still resolves to an unsupported Go toolchain.
+          grep -qx 'GO_DEFAULT_VERSION:=1.27' feeds/packages/lang/golang/golang-values.mk
+          grep -q '^CONFIG_PACKAGE_xray-core=y$' .config
+          make -j"$(nproc)" download
+      - name: Compile
+        run: cd openwrt && make -j"$(nproc)" V=s
+      - name: Collect and validate
+        run: |
+          mkdir -p out
+          find openwrt/bin/targets -type f \( -name '*generic*combined*.img.gz' -o -name '*generic*ext4-combined*.img.gz' -o -name '*generic*rootfs*.tar.gz' \) -exec cp -v {} out/ \;
+          test -n "$(find out -type f)"
+          cp openwrt/.config out/config.txt
+          cp base-commit.txt upstream-commits.txt out/
+          (cd out && sha256sum * > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AlexWrt-PVE-x86_64-${{ steps.version.outputs.ref }}-${{ github.run_number }}
+          path: out/*
+          retention-days: 30
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="pve-${{ steps.version.outputs.ref }}-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --title "AlexWrt PVE x86_64 $TAG" --notes 'OpenWrt stable base with PassWall2 source integration. ImmortalWrt feed overlay requires per-package compatibility validation.' .config; then
+            rm -f package/feeds/*/luci-app-weechat
+            rm -f package/feeds/*/weechat-full
+            rm -f package/feeds/*/weechat-minimal
+          fi
           make defconfig
           # Fail early if the Xray package still resolves to an unsupported Go toolchain.
           grep -qx 'GO_DEFAULT_VERSION:=1.27' feeds/packages/lang/golang/golang-values.mk
