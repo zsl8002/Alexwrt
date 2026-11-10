@@ -59,6 +59,12 @@ jobs:
           ./scripts/feeds update -a
           bash scripts/prepare-pve-build.sh "$GITHUB_WORKSPACE/openwrt"
           ./scripts/feeds install -a
+          # Prosody is not selected by the PVE config. The current packages-feed
+          # recipe references Lua 5.4 modules absent from this OpenWrt stable feed;
+          # remove this unrelated package before Kconfig scans package Makefiles.
+          if ! grep -qx 'CONFIG_PACKAGE_prosody=y' .config; then
+            rm -rf package/feeds/packages/prosody
+          fi
           make defconfig
           # Fail early if the Xray package still resolves to an unsupported Go toolchain.
           grep -qx 'GO_DEFAULT_VERSION:=1.27' feeds/packages/lang/golang/golang-values.mk
