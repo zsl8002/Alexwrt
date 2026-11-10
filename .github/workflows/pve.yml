@@ -31,7 +31,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           INPUT_REF: ${{ inputs.openwrt_ref }}
         run: |
-          if [ -n "$INPUT_REF" ]; then REF="$INPUT_REF"; else REF="$(gh release list --repo openwrt/openwrt --limit 100 --json tagName,isPrerelease --jq '[.[] | select(.isPrerelease == false) | .[0].tagName] | .[0]')"; fi
+          if [ -n "$INPUT_REF" ]; then REF="$INPUT_REF"; else REF="$(gh release list --repo openwrt/openwrt --limit 100 --json tagName,isPrerelease --jq '[.[] | select(.isPrerelease == false) | .tagName] | .[0]')"; fi
           test -n "$REF" && test "$REF" != null
           echo "ref=$REF" >> "$GITHUB_OUTPUT"
       - name: Clone OpenWrt stable
