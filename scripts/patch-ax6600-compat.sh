@@ -96,7 +96,7 @@ cat > "$PACKAGES/net/samba4/patches/100-musl-heimdal-compat.patch" <<'PATCH'
 +++ b/source3/client/smbspool.c
 @@ -649,7 +649,7 @@
  			fprintf(stderr,
- 				"DEBUG: Try to authenticate as %s\\n",
+ 				"DEBUG: Try to authenticate as %s\n",
  				princ_name);
 -			krb5_free_unparsed_name(ctx, princ_name);
 +			krb5_xfree(princ_name);
