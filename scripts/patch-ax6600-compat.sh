@@ -61,10 +61,10 @@ define Build/Prepare
 		$(PKG_BUILD_DIR)/lib/krb5_wrap/krb5_samba.c \
 		$(PKG_BUILD_DIR)/auth/credentials/credentials_krb5.c \
 		$(PKG_BUILD_DIR)/source3/client/smbspool.c; do \
-		[ ! -f "$$$$f" ] || sed -i \
+		[ ! -f "$f" ] || sed -i \
 			-e 's@<sys/poll.h>@<poll.h>@g' \
 			-e 's@krb5_free_unparsed_name([^,]*, *\([^)]*\))@krb5_xfree(\1)@g' \
-			"$$$$f"; \
+			"$f"; \
 	done
 endef
 MAKE
