@@ -52,6 +52,10 @@ jobs:
       - name: Integrate PassWall2 and configure
         run: |
           set -Eeuo pipefail
+          LOG="$GITHUB_WORKSPACE/pve-build.log"
+          : > "$LOG"
+          trap 'status=$?; tail -n 180 "$LOG"; exit "$status"' ERR
+          exec >> "$LOG" 2>&1
           cp config/pve-x86_64.config openwrt/.config
           bash scripts/add-passwall2.sh "$GITHUB_WORKSPACE/openwrt"
           cd openwrt
@@ -67,7 +71,32 @@ jobs:
 
           # Avoid the unselected upstream Weechat Kconfig dependency cycle.
           # Keep feed repositories intact and remove only these package links.
-          if ! grep -Eq '^CONFIG_PACKAGE_(luci-app-weechat|weechat-full|weechat-minimal)=y$' .config; then
+          if ! grep -Eq '^CONFIG_PACKAGE_(luci-app-weechat|weechat-full|weechat-minimal)=y        run: |
+          set -Eeuo pipefail
+          mkdir -p out
+          find openwrt/bin/targets -type f \( -name '*generic*combined*.img.gz' -o -name '*generic*ext4-combined*.img.gz' -o -name '*generic*rootfs*.tar.gz' \) -exec cp -v {} out/ \;
+          test -n "$(find out -type f)"
+          cp openwrt/.config out/config.txt
+          cp base-commit.txt upstream-commits.txt out/
+          cp "$GITHUB_WORKSPACE/pve-build.log" out/ 2>/dev/null || true
+          if [ -f "$GITHUB_WORKSPACE/pve-build.log" ]; then
+            grep -nEi '(^|[[:space:]])(WARNING:|warning:|ERROR:|error:|fatal:)|No such file or directory|undefined reference' "$GITHUB_WORKSPACE/pve-build.log" > out/build-diagnostics.txt || true
+          else
+            printf 'Build log unavailable.\\n' > out/build-diagnostics.txt
+          fi
+          (cd out && sha256sum * > SHA256SUMS)
+      - uses: actions/upload-artifact@v6
+        with:
+          name: AlexWrt-PVE-x86_64-${{ steps.version.outputs.ref }}-${{ github.run_number }}
+          path: out/*
+          retention-days: 30
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="pve-${{ steps.version.outputs.ref }}-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --title "AlexWrt PVE x86_64 $TAG" --notes 'OpenWrt stable base with PassWall2 source integration. ImmortalWrt feed overlay requires per-package compatibility validation.'
+ .config; then
             rm -f package/feeds/*/luci-app-weechat
             rm -f package/feeds/*/weechat-full
             rm -f package/feeds/*/weechat-minimal
@@ -75,12 +104,106 @@ jobs:
 
           make defconfig
           grep -qx 'GO_DEFAULT_VERSION:=1.27' feeds/packages/lang/golang/golang-values.mk
-          grep -q '^CONFIG_PACKAGE_xray-core=y$' .config
-          grep -q '^CONFIG_PACKAGE_luci-app-passwall2=y$' .config
-          grep -q '^CONFIG_PACKAGE_sing-box=y$' .config
+          grep -q '^CONFIG_PACKAGE_xray-core=y        run: |
+          set -Eeuo pipefail
+          mkdir -p out
+          find openwrt/bin/targets -type f \( -name '*generic*combined*.img.gz' -o -name '*generic*ext4-combined*.img.gz' -o -name '*generic*rootfs*.tar.gz' \) -exec cp -v {} out/ \;
+          test -n "$(find out -type f)"
+          cp openwrt/.config out/config.txt
+          cp base-commit.txt upstream-commits.txt out/
+          (cd out && sha256sum * > SHA256SUMS)
+      - uses: actions/upload-artifact@v6
+        with:
+          name: AlexWrt-PVE-x86_64-${{ steps.version.outputs.ref }}-${{ github.run_number }}
+          path: out/*
+          retention-days: 30
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="pve-${{ steps.version.outputs.ref }}-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --title "AlexWrt PVE x86_64 $TAG" --notes 'OpenWrt stable base with PassWall2 source integration. ImmortalWrt feed overlay requires per-package compatibility validation.'
+ .config
+          grep -q '^CONFIG_PACKAGE_luci-app-passwall2=y        run: |
+          set -Eeuo pipefail
+          mkdir -p out
+          find openwrt/bin/targets -type f \( -name '*generic*combined*.img.gz' -o -name '*generic*ext4-combined*.img.gz' -o -name '*generic*rootfs*.tar.gz' \) -exec cp -v {} out/ \;
+          test -n "$(find out -type f)"
+          cp openwrt/.config out/config.txt
+          cp base-commit.txt upstream-commits.txt out/
+          (cd out && sha256sum * > SHA256SUMS)
+      - uses: actions/upload-artifact@v6
+        with:
+          name: AlexWrt-PVE-x86_64-${{ steps.version.outputs.ref }}-${{ github.run_number }}
+          path: out/*
+          retention-days: 30
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="pve-${{ steps.version.outputs.ref }}-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --title "AlexWrt PVE x86_64 $TAG" --notes 'OpenWrt stable base with PassWall2 source integration. ImmortalWrt feed overlay requires per-package compatibility validation.'
+ .config
+          grep -q '^CONFIG_PACKAGE_sing-box=y        run: |
+          set -Eeuo pipefail
+          mkdir -p out
+          find openwrt/bin/targets -type f \( -name '*generic*combined*.img.gz' -o -name '*generic*ext4-combined*.img.gz' -o -name '*generic*rootfs*.tar.gz' \) -exec cp -v {} out/ \;
+          test -n "$(find out -type f)"
+          cp openwrt/.config out/config.txt
+          cp base-commit.txt upstream-commits.txt out/
+          (cd out && sha256sum * > SHA256SUMS)
+      - uses: actions/upload-artifact@v6
+        with:
+          name: AlexWrt-PVE-x86_64-${{ steps.version.outputs.ref }}-${{ github.run_number }}
+          path: out/*
+          retention-days: 30
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="pve-${{ steps.version.outputs.ref }}-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --title "AlexWrt PVE x86_64 $TAG" --notes 'OpenWrt stable base with PassWall2 source integration. ImmortalWrt feed overlay requires per-package compatibility validation.'
+ .config
+          grep -q '^CONFIG_PACKAGE_geoview=y        run: |
+          set -Eeuo pipefail
+          mkdir -p out
+          find openwrt/bin/targets -type f \( -name '*generic*combined*.img.gz' -o -name '*generic*ext4-combined*.img.gz' -o -name '*generic*rootfs*.tar.gz' \) -exec cp -v {} out/ \;
+          test -n "$(find out -type f)"
+          cp openwrt/.config out/config.txt
+          cp base-commit.txt upstream-commits.txt out/
+          (cd out && sha256sum * > SHA256SUMS)
+      - uses: actions/upload-artifact@v6
+        with:
+          name: AlexWrt-PVE-x86_64-${{ steps.version.outputs.ref }}-${{ github.run_number }}
+          path: out/*
+          retention-days: 30
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="pve-${{ steps.version.outputs.ref }}-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --title "AlexWrt PVE x86_64 $TAG" --notes 'OpenWrt stable base with PassWall2 source integration. ImmortalWrt feed overlay requires per-package compatibility validation.'
+ .config
           make -j"$(nproc)" download
       - name: Compile
-        run: cd openwrt && make -j"$(nproc)" V=s
+        run: |
+          set -Eeuo pipefail
+          LOG="$GITHUB_WORKSPACE/pve-build.log"
+          trap 'status=$?; tail -n 220 "$LOG"; exit "$status"' ERR
+          cd openwrt
+          make -j"$(nproc)" V=s >> "$LOG" 2>&1
+      - name: Summarize build diagnostics
+        if: always()
+        run: |
+          set -Eeuo pipefail
+          LOG="$GITHUB_WORKSPACE/pve-build.log"
+          if [ -f "$LOG" ]; then
+            grep -nEi '(^|[[:space:]])(WARNING:|warning:|ERROR:|error:|fatal:)|No such file or directory|undefined reference|make\\[[0-9]+\\]: \\*\\*\\*' "$LOG" | tail -n 200 || true
+            echo "Total diagnostic matches: $(grep -Eic 'WARNING:|warning:|ERROR:|error:|fatal:|No such file or directory|undefined reference' "$LOG" || true)"
+            echo "Missing dependency warning count: $(grep -Eic 'WARNING: Makefile .*dependency on .* does not exist' "$LOG" || true)"
+          else
+            echo "Build log was not created."
+          fi
       - name: Collect and validate
         run: |
           set -Eeuo pipefail
