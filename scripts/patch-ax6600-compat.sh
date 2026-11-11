@@ -25,8 +25,9 @@ PATCH
 
 # elfutils has separate host-tool and target-package builds. Patch both
 # locations when present so the gettext_noop fallback is guarded in each.
-for dir in "$ROOT/tools/elfutils/patches" "$ROOT/package/libs/elfutils/patches"; do
-  if [ -d "$(dirname "$dir")" ]; then
+for base in "$ROOT/tools/elfutils" "$ROOT/package/libs/elfutils"; do
+  if [ -d "$base" ]; then
+    dir="$base/patches"
     mkdir -p "$dir"
     cat > "$dir/102-guard-gettext-noop.patch" <<'PATCH'
 --- a/lib/system.h
