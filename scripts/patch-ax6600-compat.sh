@@ -32,4 +32,23 @@ cat > "$PACKAGES/libs/udns/patches/100-musl-poll-header.patch" <<'PATCH'
 +#include <poll.h>
 PATCH
 
-echo "Applied source patches for obsolete sys/poll.h includes (libtirpc, udns)."
+
+# elfutils defines gettext_noop unconditionally even when gettext.h has
+# already supplied the same macro. Guard the fallback instead of allowing
+# hundreds of duplicate-definition warnings in host/target builds.
+ELFUTILS_PATCHES="$ROOT/package/libs/elfutils/patches"
+test -d "$ELFUTILS_PATCHES" || {
+  echo "Expected elfutils patch directory missing: $ELFUTILS_PATCHES" >&2
+  exit 1
+}
+cat > "$ELFUTILS_PATCHES/102-guard-gettext-noop.patch" <<'PATCH'
+--- a/lib/system.h
++++ b/lib/system.h
+@@ -162 +162,3 @@
+-#define gettext_noop(Str) Str
++#ifndef gettext_noop
++#define gettext_noop(Str) Str
++#endif
+PATCH
+
+echo "Applied AX6600 compatibility patches: musl poll headers and elfutils gettext macro guard."
