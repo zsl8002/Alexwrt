@@ -45,64 +45,30 @@ endef
 MAKE
 fi
 
-# Samba 4.24.5: fix the Heimdal poll header and replace deprecated
-# krb5_free_unparsed_name() calls with the documented krb5_xfree().
-mkdir -p "$PACKAGES/net/samba4/patches"
-cat > "$PACKAGES/net/samba4/patches/100-musl-heimdal-compat.patch" <<'PATCH'
---- a/third_party/heimdal/lib/krb5/krb5_locl.h
-+++ b/third_party/heimdal/lib/krb5/krb5_locl.h
-@@ -44,7 +44,7 @@
- 
- #ifdef HAVE_POLL_H
--#include <sys/poll.h>
-+#include <poll.h>
- #endif
- 
- #include <krb5-types.h>
---- a/lib/krb5_wrap/krb5_samba.c
-+++ b/lib/krb5_wrap/krb5_samba.c
-@@ -713,7 +713,7 @@
- 	*_salt_principal_str
- 		= talloc_strdup(mem_ctx, salt_principal_malloc);
--	krb5_free_unparsed_name(krb5_ctx, salt_principal_malloc);
-+	krb5_xfree(salt_principal_malloc);
- 
- 	if (*_salt_principal_str == NULL) {
- 		return ENOMEM;
-@@ -919,10 +919,10 @@
- 	}
- 
- 	if (!pull_utf8_talloc(mem_ctx, unix_name, utf8_name, &converted_size)) {
--		krb5_free_unparsed_name(context, utf8_name);
-+		krb5_xfree(utf8_name);
- 		return ENOMEM;
- 	}
--	krb5_free_unparsed_name(context, utf8_name);
-+	krb5_xfree(utf8_name);
- 	return 0;
- }
---- a/auth/credentials/credentials_krb5.c
-+++ b/auth/credentials/credentials_krb5.c
-@@ -256,7 +256,7 @@
- 	}
- 
- 	ok = cli_credentials_set_principal(cred, name, obtained);
--	krb5_free_unparsed_name(ccache->smb_krb5_context->krb5_context, name);
-+	krb5_xfree(name);
- 	if (!ok) {
- 		krb5_free_principal(ccache->smb_krb5_context->krb5_context, princ);
- 		return ENOMEM;
---- a/source3/client/smbspool.c
-+++ b/source3/client/smbspool.c
-@@ -649,7 +649,7 @@
- 			fprintf(stderr,
- 				"DEBUG: Try to authenticate as %s\n",
- 				princ_name);
--			krb5_free_unparsed_name(ctx, princ_name);
-+			krb5_xfree(princ_name);
- 		}
- 		krb5_free_principal(ctx, default_princ);
-PATCH
+# Samba 4.24.5: apply compatibility substitutions after source extraction.
+# Use a post-prepare hook rather than a context-sensitive patch: Samba's
+# vendored Heimdal header layout differs from older releases.
+SAMBA_MK="$PACKAGES/net/samba4/Makefile"
+if ! grep -q 'AX6600 musl poll-header and Heimdal deprecation compatibility' "$SAMBA_MK"; then
+  cat >> "$SAMBA_MK" <<'MAKE'
+
+# AX6600 musl poll-header and Heimdal deprecation compatibility
+define Build/Prepare
+	$(call Build/Prepare/Default)
+	@set -e; \
+	for f in \
+		$(PKG_BUILD_DIR)/third_party/heimdal/lib/krb5/krb5_locl.h \
+		$(PKG_BUILD_DIR)/lib/krb5_wrap/krb5_samba.c \
+		$(PKG_BUILD_DIR)/auth/credentials/credentials_krb5.c \
+		$(PKG_BUILD_DIR)/source3/client/smbspool.c; do \
+		[ ! -f "$$$$f" ] || sed -i \
+			-e 's@<sys/poll.h>@<poll.h>@g' \
+			-e 's@krb5_free_unparsed_name([^,]*, *\([^)]*\))@krb5_xfree(\1)@g' \
+			"$$$$f"; \
+	done
+endef
+MAKE
+fi
 
 # iptables 1.8.10: nfnl_osf.c includes sys/poll.h directly.
 IPTABLES_MK="$BASE/network/utils/iptables/Makefile"
