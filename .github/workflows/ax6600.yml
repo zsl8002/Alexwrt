@@ -36,6 +36,7 @@ jobs:
           exec >> "$LOG" 2>&1
           cp config/ax6600.config openwrt/.config
           bash scripts/add-passwall2.sh "$GITHUB_WORKSPACE/openwrt"
+          grep -q 'IPKG_INSTROOT' "$GITHUB_WORKSPACE/openwrt/package/alexwrt/passwall2/luci-app-passwall2/root/usr/share/passwall2/utils.sh"
           cd openwrt
           ./scripts/feeds update -a
           ./scripts/feeds install -a
@@ -54,7 +55,7 @@ jobs:
           set -Eeuo pipefail
           LOG="$GITHUB_WORKSPACE/ax6600-build.log"
           if [ -f "$LOG" ]; then
-            grep -nEi '(^|[[:space:]])(WARNING:|warning:|ERROR:|error:|fatal:)|No such file or directory|undefined reference|make\\[[0-9]+\\]: \\*\\*\\*' "$LOG" | tail -n 200 || true
+            grep -nEi '(^|[[:space:]])(WARNING:|warning:|ERROR:|error:|fatal:)|No such file or directory|undefined reference|make\[[0-9]+\]: \*\*\*' "$LOG" | tail -n 200 || true
             echo "Total diagnostic matches: $(grep -Eic 'WARNING:|warning:|ERROR:|error:|fatal:|No such file or directory|undefined reference' "$LOG" || true)"
           else
             echo "Build log was not created."
