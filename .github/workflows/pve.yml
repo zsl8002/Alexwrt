@@ -90,7 +90,7 @@ jobs:
           cp openwrt/.config out/config.txt
           cp base-commit.txt upstream-commits.txt out/
           (cd out && sha256sum * > SHA256SUMS)
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: AlexWrt-PVE-x86_64-${{ steps.version.outputs.ref }}-${{ github.run_number }}
           path: out/*
