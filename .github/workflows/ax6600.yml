@@ -60,6 +60,33 @@ jobs:
           else
             echo "Build log was not created."
           fi
+      - name: Preserve diagnostics even when build fails
+        if: always()
+        run: |
+          set -Eeuo pipefail
+          mkdir -p diagnostics
+          LOG="$GITHUB_WORKSPACE/ax6600-build.log"
+          if [ -f "$LOG" ]; then
+            cp "$LOG" diagnostics/ax6600-build.log
+            grep -nEi '(^|[[:space:]])(WARNING:|warning:|ERROR:|error:|fatal:)|No such file or directory|undefined reference|make\\[[0-9]+\\]: \\*\\*\\*' "$LOG" > diagnostics/build-diagnostics.txt || true
+            {
+              echo "Log bytes: $(wc -c < "$LOG")"
+              echo "Warning count: $(grep -Eic 'WARNING:|warning:' "$LOG" || true)"
+              echo "Error/fatal count: $(grep -Eic 'ERROR:|error:|fatal:|undefined reference|No such file or directory' "$LOG" || true)"
+              echo "Last 160 diagnostic lines:"
+              tail -n 160 diagnostics/build-diagnostics.txt || true
+            } > diagnostics/summary.txt
+          else
+            printf 'AX6600 build log was not created.\n' > diagnostics/summary.txt
+          fi
+      - name: Upload diagnostics (including failed builds)
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: AlexWrt-AX6600-diagnostics-${{ github.run_number }}
+          path: diagnostics/*
+          if-no-files-found: warn
+          retention-days: 30
       - name: Collect and validate
         run: |
           set -Eeuo pipefail
