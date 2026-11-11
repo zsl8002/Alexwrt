@@ -61,6 +61,9 @@ jobs:
           cd openwrt
           ./scripts/feeds update -a
           bash "$GITHUB_WORKSPACE/scripts/prepare-pve-build.sh" "$GITHUB_WORKSPACE/openwrt"
+          # The first feed-install scan can report optional dependencies before
+          # their feed links are installed. Keep all official feeds; validate the
+          # selected package graph with make defconfig and the completed build.
           ./scripts/feeds install -a
 
           # Prosody is not selected; its current recipe references Lua 5.4
