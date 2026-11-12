@@ -108,6 +108,8 @@ jobs:
           cd openwrt
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+          # Add ImmortalWrt package/LuCI ecosystems without replacing OpenWrt packages.
+          bash "$GITHUB_WORKSPACE/scripts/integrate-immortalwrt-feeds.sh" "$GITHUB_WORKSPACE/openwrt"
           bash "$GITHUB_WORKSPACE/scripts/patch-ax6600-compat.sh" "$GITHUB_WORKSPACE/openwrt"
           make defconfig
           make -j"$(nproc)" download
