@@ -16,6 +16,30 @@ jobs:
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v5
+      - name: Free runner disk space
+        run: |
+          set -Eeuo pipefail
+          echo "Disk space before cleanup:"
+          df -h /
+          # Remove large preinstalled SDKs not used by this OpenWrt cross-build.
+          # Keep the runner toolchain, Python, Node.js and GitHub Actions runtime.
+          sudo rm -rf \
+            /usr/share/dotnet \
+            /usr/local/lib/android \
+            /opt/ghc \
+            /usr/local/share/boost \
+            /usr/local/.ghcup \
+            /usr/share/swift \
+            /usr/local/share/powershell \
+            /opt/hostedtoolcache/CodeQL
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          if command -v docker >/dev/null 2>&1; then
+            sudo docker image prune --all --force || true
+            sudo docker builder prune --all --force || true
+          fi
+          echo "Disk space after cleanup:"
+          df -h /
       - name: Install build dependencies
         run: |
           set -Eeuo pipefail
