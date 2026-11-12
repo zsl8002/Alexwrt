@@ -85,4 +85,30 @@ endef
 MAKE
 fi
 
+# firewall4 2026-11-08 source mirror hash:
+# The upstream source archive generated from this exact Git commit hashes to
+# a95c6cfe...; an earlier recipe carried an incorrect 70cba... value.
+# Correct only this known stale hash and fail closed for any other revision.
+FW4_MK="$BASE/network/config/firewall4/Makefile"
+FW4_VERSION="3722eadc088c3ab81389596ca9796112b436583a"
+FW4_HASH_OLD="70cbaec533e7d635c00f5288a31a1d5d44cd43390d18c2df296e00079d1e4efe"
+FW4_HASH_GOOD="a95c6cfe419c7d4e22bda5608aa6e46c67dadc9c7096879702d614cc498759d0"
+
+if [ -f "$FW4_MK" ] && grep -q "PKG_SOURCE_VERSION:=$FW4_VERSION" "$FW4_MK"; then
+  if grep -q "PKG_MIRROR_HASH:=$FW4_HASH_OLD" "$FW4_MK"; then
+    sed -i "s/$FW4_HASH_OLD/$FW4_HASH_GOOD/" "$FW4_MK"
+    echo "Corrected stale firewall4 mirror hash for $FW4_VERSION."
+  elif ! grep -q "PKG_MIRROR_HASH:=$FW4_HASH_GOOD" "$FW4_MK"; then
+    echo "Unexpected firewall4 mirror hash for pinned source $FW4_VERSION." >&2
+    grep -E '^PKG_(SOURCE_DATE|SOURCE_VERSION|MIRROR_HASH):=' "$FW4_MK" >&2 || true
+    exit 1
+  fi
+
+  # Remove any archive produced under the stale hash before the clean fetch.
+  rm -f "$ROOT/dl/firewall4-2026.11.08~3722eadc.tar.zst"
+  rm -rf "$ROOT/tmp/dl/firewall4-2026.11.08~3722eadc"
+else
+  echo "firewall4 source revision differs from the audited revision; no hash override applied."
+fi
+
 echo "Applied AX6600 compatibility fixes: libtirpc, udns, Samba/Heimdal, and iptables poll headers; Samba Heimdal deprecation cleanup."
