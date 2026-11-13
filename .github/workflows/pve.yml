@@ -110,6 +110,8 @@ jobs:
           # their feed links are installed. Keep all official feeds; validate the
           # selected package graph with make defconfig and the completed build.
           ./scripts/feeds install -a
+          # Add ImmortalWrt package/LuCI ecosystems without replacing OpenWrt packages.
+          bash "$GITHUB_WORKSPACE/scripts/integrate-immortalwrt-feeds.sh" "$GITHUB_WORKSPACE/openwrt"
 
           # Prosody is not selected; its current recipe references Lua 5.4
           # modules absent from this stable feed. Remove only its package link.
@@ -176,4 +178,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="pve-${{ steps.version.outputs.ref }}-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
-          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --title "AlexWrt PVE x86_64 $TAG" --notes 'OpenWrt stable base with PassWall2 source integration. ImmortalWrt feed overlay requires per-package compatibility validation.'
+          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --title "AlexWrt PVE x86_64 $TAG" --notes 'OpenWrt stable base with PassWall2 and non-forced ImmortalWrt package/LuCI feed overlays. OpenWrt core and official feeds are retained.'
