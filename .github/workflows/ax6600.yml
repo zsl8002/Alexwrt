@@ -111,12 +111,16 @@ jobs:
           bash "$GITHUB_WORKSPACE/scripts/patch-ax6600-compat.sh" "$GITHUB_WORKSPACE/openwrt"
           make defconfig
           grep -qx 'CONFIG_KERNEL_DYNAMIC_DEBUG=y' .config
-          for symbol in CONFIG_DYNAMIC_DEBUG CONFIG_ATH11K_DEBUG CONFIG_IKCONFIG CONFIG_IKCONFIG_PROC; do
+          for symbol in CONFIG_DYNAMIC_DEBUG CONFIG_IKCONFIG CONFIG_IKCONFIG_PROC; do
             grep -qx "${symbol}=y" target/linux/qualcommax/config-6.18 || {
               echo "::error::Required AX6600 kernel config missing: ${symbol}=y"
               exit 1
             }
           done
+          grep -qx 'CONFIG_PACKAGE_ATH_DEBUG=y' .config || {
+            echo "::error::OpenWrt ath.mk debug package option CONFIG_PACKAGE_ATH_DEBUG=y is missing."
+            exit 1
+          }
           make -j"$(nproc)" download
       - name: Compile
         run: |
@@ -174,14 +178,29 @@ jobs:
             echo "::error::Generated Linux kernel .config was not found."
             exit 1
           fi
-          for symbol in CONFIG_DEBUG_FS CONFIG_DYNAMIC_DEBUG CONFIG_ATH11K_DEBUG CONFIG_IKCONFIG CONFIG_IKCONFIG_PROC; do
+          for symbol in CONFIG_DEBUG_FS CONFIG_DYNAMIC_DEBUG CONFIG_IKCONFIG CONFIG_IKCONFIG_PROC; do
             if ! grep -qx "${symbol}=y" "$KERNEL_CONFIG"; then
-              echo "::error::Final kernel config is missing ${symbol}=y"
+              echo "::error::Final Linux kernel config is missing ${symbol}=y"
               grep -E "^(# ${symbol} is not set|${symbol}=)" "$KERNEL_CONFIG" || true
               exit 1
             fi
           done
+          grep -qx 'CONFIG_PACKAGE_ATH_DEBUG=y' openwrt/.config || {
+            echo "::error::OpenWrt config is missing CONFIG_PACKAGE_ATH_DEBUG=y."
+            exit 1
+          }
+          BACKPORTS_CONFIG="$(find openwrt/build_dir -type f -path '*/mac80211-regular/backports-*/.config' -print -quit)"
+          if [ -z "$BACKPORTS_CONFIG" ]; then
+            echo "::error::mac80211 backports .config was not found; cannot verify ath11k debug support."
+            exit 1
+          fi
+          if ! grep -qx 'CONFIG_ATH11K_DEBUG=y' "$BACKPORTS_CONFIG"; then
+            echo "::error::mac80211 backports config is missing CONFIG_ATH11K_DEBUG=y."
+            grep -E '^(# CONFIG_ATH11K_DEBUG is not set|CONFIG_ATH11K_DEBUG=)' "$BACKPORTS_CONFIG" || true
+            exit 1
+          fi
           cp "$KERNEL_CONFIG" out/kernel.config.txt
+          cp "$BACKPORTS_CONFIG" out/mac80211-backports.config.txt
           cp openwrt/.config out/config.txt
           cp base-commit.txt upstream-commits.txt out/
           cp "$GITHUB_WORKSPACE/ax6600-build.log" out/ 2>/dev/null || true
