@@ -111,7 +111,7 @@ jobs:
           bash "$GITHUB_WORKSPACE/scripts/patch-ax6600-compat.sh" "$GITHUB_WORKSPACE/openwrt"
           make defconfig
           grep -qx 'CONFIG_KERNEL_DYNAMIC_DEBUG=y' .config
-          for symbol in CONFIG_ATH11K_DEBUG CONFIG_IKCONFIG CONFIG_IKCONFIG_PROC; do
+          for symbol in CONFIG_DYNAMIC_DEBUG CONFIG_ATH11K_DEBUG CONFIG_IKCONFIG CONFIG_IKCONFIG_PROC; do
             grep -qx "${symbol}=y" target/linux/qualcommax/config-6.18 || {
               echo "::error::Required AX6600 kernel config missing: ${symbol}=y"
               exit 1
