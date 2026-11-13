@@ -183,8 +183,12 @@ set_kernel_config() {
   fi
 }
 set_kernel_config CONFIG_DYNAMIC_DEBUG y
-set_kernel_config CONFIG_ATH11K_DEBUG y
 set_kernel_config CONFIG_IKCONFIG y
 set_kernel_config CONFIG_IKCONFIG_PROC y
+
+# ATH11K_DEBUG belongs to the mac80211 backports Kconfig, not the Linux
+# kernel .config. It is selected through CONFIG_PACKAGE_ATH_DEBUG in ath.mk.
+# Remove any stale raw entry from the Linux target fragment.
+sed -i -e '/^CONFIG_ATH11K_DEBUG=/d' -e '/^# CONFIG_ATH11K_DEBUG is not set$/d' "$KERNEL_CONFIG_FRAGMENT"
 
 echo "Applied AX6600 compatibility fixes: libtirpc, udns, Samba/Heimdal, and iptables poll headers; Samba Heimdal deprecation cleanup."
