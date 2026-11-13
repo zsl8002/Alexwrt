@@ -182,6 +182,7 @@ set_kernel_config() {
     printf '%s=%s\n' "$symbol" "$value" >> "$KERNEL_CONFIG_FRAGMENT"
   fi
 }
+set_kernel_config CONFIG_DYNAMIC_DEBUG y
 set_kernel_config CONFIG_ATH11K_DEBUG y
 set_kernel_config CONFIG_IKCONFIG y
 set_kernel_config CONFIG_IKCONFIG_PROC y
