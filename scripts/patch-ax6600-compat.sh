@@ -85,6 +85,16 @@ endef
 MAKE
 fi
 
+
+# AX6600: do not ship the fork's custom regulatory override.
+# The upstream fork's 600 patch raises CN/US transmit power and removes
+# DFS/NO-OUTDOOR restrictions. Restore the upstream wireless-regdb rules.
+REGDB_OVERRIDE="$BASE/firmware/wireless-regdb/patches/600-custom-change-txpower-and-dfs.patch"
+if [ -f "$REGDB_OVERRIDE" ]; then
+  rm -f "$REGDB_OVERRIDE"
+  echo "Removed non-compliant custom CN/US regulatory override; using upstream wireless-regdb limits."
+fi
+
 # firewall4 2026-11-08 source mirror hash:
 # The upstream source archive generated from this exact Git commit hashes to
 # a95c6cfe...; an earlier recipe carried an incorrect 70cba... value.
