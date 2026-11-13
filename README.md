@@ -21,6 +21,10 @@ PassWall2 和 passwall-packages 在构建时从上游克隆并记录 commit，�
 
 PVE 构建会跳过未选入固件的 Prosody feed 包：当前稳定 feed 中该包引用的四个 Lua 5.4 模块不可用，且 Prosody 不属于本固件功能范围。不会修改官方 Prosody 配方或关闭依赖检查。当前首版采用源码编译预装 PassWall2，尚未宣称已配置可在线更新的 AlexWrt 自有签名 APK/IPK 仓库。后续自有 feed 必须使用 GitHub Secrets 中的专用私钥签名，并在镜像内预置对应公钥。
 
+## AX6600 QCN9074 调试配置
+
+AX6600 构建启用 Linux Dynamic Debug，并启用 ath11k 调试及内核配置导出（IKCONFIG）。Dynamic Debug 默认不打开调试打印；需要诊断时再按文件/模块选择性启用。它会增加约 2% 的内核代码体积。构建流程会检查最终生成的 Linux 内核 `.config`，并将其作为 `kernel.config.txt` 随固件产物发布，避免配置片段未生效却误以为已启用。
+
 ## 更新
 - 软件包：使用系统原生包管理器及发行版官方签名仓库。PassWall2 更新随本项目成功构建的固件发布；自有签名 feed 部署完成前，不会伪称可从第三方仓库无缝更新。
 - 整机：包含 attendedsysupgrade。通过 LuCI/ASU 检查匹配设备的 sysupgrade 并确认执行。默认不启用无人确认的强制自动刷写，避免断电、分区不匹配或错误镜像导致变砖。

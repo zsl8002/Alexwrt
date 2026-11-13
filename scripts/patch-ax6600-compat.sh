@@ -162,4 +162,28 @@ else
   echo "firewall4 source revision differs from the audited revision; no hash override applied."
 fi
 
+# AX6600 QCN9074 regulatory diagnostics.
+# KERNEL_DYNAMIC_DEBUG is selected through the OpenWrt top-level .config.
+# These raw Linux Kconfig symbols are target-specific and are merged from
+# target/linux/qualcommax/config-6.18 into the final kernel .config.
+KERNEL_CONFIG_FRAGMENT="$ROOT/target/linux/qualcommax/config-6.18"
+test -f "$KERNEL_CONFIG_FRAGMENT" || {
+  echo "Expected kernel config fragment missing: $KERNEL_CONFIG_FRAGMENT" >&2
+  exit 1
+}
+set_kernel_config() {
+  local symbol="$1"
+  local value="$2"
+  if grep -q "^# ${symbol} is not set$" "$KERNEL_CONFIG_FRAGMENT"; then
+    sed -i "s/^# ${symbol} is not set$/${symbol}=${value}/" "$KERNEL_CONFIG_FRAGMENT"
+  elif grep -q "^${symbol}=" "$KERNEL_CONFIG_FRAGMENT"; then
+    sed -i "s|^${symbol}=.*$|${symbol}=${value}|" "$KERNEL_CONFIG_FRAGMENT"
+  else
+    printf '%s=%s\n' "$symbol" "$value" >> "$KERNEL_CONFIG_FRAGMENT"
+  fi
+}
+set_kernel_config CONFIG_ATH11K_DEBUG y
+set_kernel_config CONFIG_IKCONFIG y
+set_kernel_config CONFIG_IKCONFIG_PROC y
+
 echo "Applied AX6600 compatibility fixes: libtirpc, udns, Samba/Heimdal, and iptables poll headers; Samba Heimdal deprecation cleanup."
