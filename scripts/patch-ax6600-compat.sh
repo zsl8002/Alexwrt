@@ -121,7 +121,7 @@ userspace firmware fallback does not log a false missing-firmware error.
 +	ath11k_core_create_firmware_path(ab, name, path, sizeof(path));
 +	ret = request_firmware_direct(&ab->fw.fw, path, ab->dev);
 +	if (ret) {
- 		ath11k_dbg(ab, ATH11K_DBG_BOOT, "failed to load %s: %d\\n", name, ret);
+ 		ath11k_dbg(ab, ATH11K_DBG_BOOT, "failed to load %s: %d\n", name, ret);
  		ab->fw.fw = NULL;
  		return ret;
 PATCH
