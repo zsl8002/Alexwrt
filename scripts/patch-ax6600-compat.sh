@@ -86,6 +86,47 @@ MAKE
 fi
 
 
+
+# AX6600: avoid userspace fallback for optional ath11k firmware-2.bin.
+# ath11k treats firmware-2.bin as optional and falls back to amss.bin/API 1.
+# Avoid sending a needless missing-file request through OpenWrt's userspace
+# firmware fallback loader (which produces procd errors during normal boot).
+ATH11K_PATCH_DIR="$ROOT/package/kernel/mac80211/patches/ath11k"
+mkdir -p "$ATH11K_PATCH_DIR"
+ATH11K_OPTIONAL_FW_PATCH="$ATH11K_PATCH_DIR/103-ath11k-optional-fw-no-userspace-fallback.patch"
+if [ ! -f "$ATH11K_OPTIONAL_FW_PATCH" ]; then
+  cat > "$ATH11K_OPTIONAL_FW_PATCH" <<'PATCH'
+From: AlexWrt compatibility patch
+Subject: [PATCH] ath11k: request optional firmware-2.bin without userspace fallback
+
+The API-N firmware-2.bin file is optional. If it is absent, ath11k falls
+back to API 1 (amss.bin). Use request_firmware_direct() so OpenWrt's
+userspace firmware fallback does not log a false missing-firmware error.
+
+--- a/drivers/net/wireless/ath/ath11k/fw.c
++++ b/drivers/net/wireless/ath/ath11k/fw.c
+@@ -16,10 +16,14 @@ static int ath11k_fw_request_firmware_api_n(struct ath11k_base *ab,
+ 	struct ath11k_fw_ie *hdr;
+ 	const u8 *data;
+ 	__le32 *timestamp;
+-
+-	ab->fw.fw = ath11k_core_firmware_request(ab, name);
+-	if (IS_ERR(ab->fw.fw)) {
+-		ret = PTR_ERR(ab->fw.fw);
++	char path[100];
++
++	/* The file is optional: look for it on the filesystem only, so a
++	 * missing one does not go through the user-space fallback loader.
++	 */
++	ath11k_core_create_firmware_path(ab, name, path, sizeof(path));
++	ret = request_firmware_direct(&ab->fw.fw, path, ab->dev);
++	if (ret) {
+ 		ath11k_dbg(ab, ATH11K_DBG_BOOT, "failed to load %s: %d\\n", name, ret);
+ 		ab->fw.fw = NULL;
+ 		return ret;
+PATCH
+fi
+
 # AX6600: do not ship the fork's custom regulatory override.
 # The upstream fork's 600 patch raises CN/US transmit power and removes
 # DFS/NO-OUTDOOR restrictions. Restore the upstream wireless-regdb rules.
