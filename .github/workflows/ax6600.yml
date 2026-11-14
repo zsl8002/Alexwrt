@@ -173,7 +173,9 @@ jobs:
           mkdir -p out
           find openwrt/bin/targets -type f \( -name '*jdcloud*factory*.bin' -o -name '*jdcloud*sysupgrade*.bin' -o -name '*jdcloud*factory*.img' -o -name '*jdcloud*sysupgrade*.img' \) -exec cp -v {} out/ \;
           test -n "$(find out -type f)"
-          KERNEL_CONFIG="$(find openwrt/build_dir -type f -path '*/linux-*/.config' -print -quit)"
+          # Do not match build_dir/target-*/linux-qualcommax_ipq60xx/.config: that is the OpenWrt target build config, not the generated Linux kernel config.
+          # The real kernel config is one level deeper, under linux-<kernel-version>/.
+          KERNEL_CONFIG="$(find openwrt/build_dir -type f -path '*/target-*/linux-qualcommax_ipq60xx/linux-*/.config' -print -quit)"
           if [ -z "$KERNEL_CONFIG" ]; then
             echo "::error::Generated Linux kernel .config was not found."
             exit 1
