@@ -164,6 +164,9 @@ fi
 
 # AX6600 QCN9074 regulatory diagnostics.
 # KERNEL_DYNAMIC_DEBUG is selected through the OpenWrt top-level .config.
+# DEBUG_FS is a prerequisite for the kernel's dynamic-debug control interface.
+# Set it explicitly before DYNAMIC_DEBUG; otherwise Kconfig silently drops
+# CONFIG_DYNAMIC_DEBUG and the final-image audit correctly fails.
 # These raw Linux Kconfig symbols are target-specific and are merged from
 # target/linux/qualcommax/config-6.18 into the final kernel .config.
 KERNEL_CONFIG_FRAGMENT="$ROOT/target/linux/qualcommax/config-6.18"
@@ -182,6 +185,7 @@ set_kernel_config() {
     printf '%s=%s\n' "$symbol" "$value" >> "$KERNEL_CONFIG_FRAGMENT"
   fi
 }
+set_kernel_config CONFIG_DEBUG_FS y
 set_kernel_config CONFIG_DYNAMIC_DEBUG y
 set_kernel_config CONFIG_IKCONFIG y
 set_kernel_config CONFIG_IKCONFIG_PROC y
