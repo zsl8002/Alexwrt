@@ -196,9 +196,13 @@ jobs:
             echo "::error::mac80211 backports .config was not found; cannot verify ath11k debug support."
             exit 1
           fi
-          if ! grep -qx 'CONFIG_ATH11K_DEBUG=y' "$BACKPORTS_CONFIG"; then
-            echo "::error::mac80211 backports config is missing CONFIG_ATH11K_DEBUG=y."
-            grep -E '^(# CONFIG_ATH11K_DEBUG is not set|CONFIG_ATH11K_DEBUG=)' "$BACKPORTS_CONFIG" || true
+          # mac80211's Build/Compile writes backports symbols with the CPTCFG_ prefix
+          # (see package/kernel/mac80211/Makefile: ConfigVars), not CONFIG_.
+          if ! grep -qx 'CPTCFG_ATH11K_DEBUG=y' "$BACKPORTS_CONFIG"; then
+            echo "::error::mac80211 backports config is missing CPTCFG_ATH11K_DEBUG=y."
+            grep -E '^(# CPTCFG_ATH11K_DEBUG is not set|CPTCFG_ATH11K_DEBUG=)' "$BACKPORTS_CONFIG" || true
+            echo "Relevant generated backports debug symbols:"
+            grep -E '^(CPTCFG_(ATH11K|ATH_DEBUG|DEBUG_FS)|# CPTCFG_(ATH11K|ATH_DEBUG|DEBUG_FS))' "$BACKPORTS_CONFIG" || true
             exit 1
           fi
           cp "$KERNEL_CONFIG" out/kernel.config.txt
