@@ -12,6 +12,10 @@ on:
     paths: ['.github/workflows/pve.yml', 'config/pve-x86_64.config', 'scripts/**']
 permissions:
   contents: write
+env:
+  # Reuse the immutable PassWall revisions validated by the AX6600 build.
+  PASSWALL2_SOURCE_REF: dd77a236c7ee46b2b3899e1951668fdc88c13c57
+  PASSWALL_PACKAGES_SOURCE_REF: b094b79c32ac4e4de3113a5c44971c6182eee535
 concurrency:
   group: pve-x86_64-build
   cancel-in-progress: false
@@ -99,7 +103,7 @@ jobs:
           set -Eeuo pipefail
           LOG="$GITHUB_WORKSPACE/pve-build.log"
           : > "$LOG"
-          trap 'status=$?; tail -n 180 "$LOG"; exit "$status"' ERR
+          trap 'status=$?; echo "::error::PVE preparation failed (exit ${status}); last build-log lines:"; tail -n 180 "$LOG" || true; exit "$status"' ERR
           exec >> "$LOG" 2>&1
           cp config/pve-x86_64.config openwrt/.config
           bash scripts/add-passwall2.sh "$GITHUB_WORKSPACE/openwrt"
