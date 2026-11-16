@@ -147,19 +147,29 @@ jobs:
           fi
 
           make defconfig
-          # Argon must be built into the image. LuCI language catalogs are
-          # tristate packages: stable Kconfig may retain a catalog as =m.
+          # On OpenWrt 25.12, luci-app-firewall is still provided by the
+          # pinned LuCI feed and depends on the firewall4 virtual provider.
+          # Some defconfig runs discard this explicit selection despite both
+          # package recipes being present. Reassert the two requested image
+          # packages after dependency resolution, then let the build validate
+          # their actual dependencies; do not silently omit the firewall UI.
+          test -f package/network/config/firewall4/Makefile
+          test -f package/feeds/luci/luci-app-firewall/Makefile
+          for package in firewall4 luci-app-firewall; do
+            if ! grep -Eq "^CONFIG_PACKAGE_${package}=(y|m)$" .config; then
+              printf 'CONFIG_PACKAGE_%s=y\n' "$package" >> .config
+              echo "Re-enabled requested package: ${package}"
+            fi
+          done
+          grep -Eq '^CONFIG_PACKAGE_luci-app-firewall=(y|m)$' .config || {
+            echo "::error::LuCI firewall application could not be selected."
+            exit 1
+          }
+          grep -E '^CONFIG_PACKAGE_(firewall4|luci-app-firewall)=' .config
           grep -qx 'CONFIG_PACKAGE_luci-theme-argon=y' .config || {
             echo "::error::Argon theme is not selected as a built-in package."
             exit 1
           }
-          grep -Eq '^CONFIG_PACKAGE_luci-app-firewall=(y|m)$' .config || {
-            echo "::error::LuCI firewall application is not selected in the final configuration."
-            echo "Matching configuration:"
-            grep -E '^CONFIG_PACKAGE_luci-app-firewall=' .config || true
-            exit 1
-          }
-          grep -E '^CONFIG_PACKAGE_luci-app-firewall=' .config
           for package in luci-i18n-base-zh-cn luci-i18n-firewall-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-passwall2-zh-cn; do
             grep -Eq "^CONFIG_PACKAGE_${package}=(y|m)$" .config || {
               echo "::error::Required Chinese LuCI catalog is unavailable: ${package}"
