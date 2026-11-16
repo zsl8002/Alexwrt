@@ -109,6 +109,22 @@ jobs:
           bash scripts/add-passwall2.sh "$GITHUB_WORKSPACE/openwrt"
           cd openwrt
           ./scripts/feeds update -a
+          # feeds update can print clone failures without making the overall
+          # command fail. Verify every release-pinned official feed before
+          # scanning package metadata or proceeding to defconfig.
+          for feed in packages luci routing telephony; do
+            expected="$(awk -v feed="$feed" '$1 == "src-git" && $2 == feed { sub(/^.*\\^/, "", $3); print $3 }' feeds.conf.default)"
+            if [ -z "$expected" ] || [ ! -d "feeds/$feed/.git" ]; then
+              echo "::error::Official feed '$feed' was not cloned."
+              exit 1
+            fi
+            actual="$(git -C "feeds/$feed" rev-parse HEAD)"
+            if [ "$actual" != "$expected" ]; then
+              echo "::error::Official feed '$feed' revision mismatch: $actual != $expected"
+              exit 1
+            fi
+            echo "Verified official feed $feed at $actual"
+          done
           bash "$GITHUB_WORKSPACE/scripts/prepare-pve-build.sh" "$GITHUB_WORKSPACE/openwrt"
           # The first feed-install scan can report optional dependencies before
           # their feed links are installed. Keep all official feeds; validate the
