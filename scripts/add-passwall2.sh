@@ -3,10 +3,27 @@ set -Eeuo pipefail
 ROOT="${1:?OpenWrt source directory required}"
 cd "$ROOT"
 
-# Keep the PassWall repositories isolated from the official feeds. Their
-# packages are compiled from source as part of this firmware build.
-git clone --depth 1 https://github.com/Openwrt-Passwall/openwrt-passwall2.git package/alexwrt/passwall2
-git clone --depth 1 https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git package/alexwrt/passwall-packages
+# Keep PassWall repositories isolated from official feeds and pinned to the
+# commits used by the last fully validated AX6600 release. Never build moving
+# main/master heads implicitly.
+: "${PASSWALL2_SOURCE_REF:?PASSWALL2_SOURCE_REF must be a reviewed 40-character commit}"
+: "${PASSWALL_PACKAGES_SOURCE_REF:?PASSWALL_PACKAGES_SOURCE_REF must be a reviewed 40-character commit}"
+for ref in "$PASSWALL2_SOURCE_REF" "$PASSWALL_PACKAGES_SOURCE_REF"; do
+  [[ "$ref" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid pinned PassWall commit: $ref" >&2; exit 1; }
+done
+mkdir -p package/alexwrt
+for spec in \
+  "passwall2|https://github.com/Openwrt-Passwall/openwrt-passwall2.git|$PASSWALL2_SOURCE_REF" \
+  "passwall-packages|https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git|$PASSWALL_PACKAGES_SOURCE_REF"; do
+  IFS='|' read -r name url ref <<< "$spec"
+  dest="package/alexwrt/$name"
+  git init "$dest"
+  git -C "$dest" remote add origin "$url"
+  git -C "$dest" fetch --depth 1 origin "$ref"
+  git -C "$dest" checkout --detach FETCH_HEAD
+  actual="$(git -C "$dest" rev-parse HEAD)"
+  [ "$actual" = "$ref" ] || { echo "Pinned $name commit mismatch: $actual != $ref" >&2; exit 1; }
+done
 
 {
   echo "passwall2 $(git -C package/alexwrt/passwall2 rev-parse HEAD)"
