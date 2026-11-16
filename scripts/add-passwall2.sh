@@ -3,53 +3,30 @@ set -Eeuo pipefail
 ROOT="${1:?OpenWrt source directory required}"
 cd "$ROOT"
 
-# Keep official feeds on the same stable series as the OpenWrt source tree.
-# Mixing a stable buildroot with rolling master feeds can introduce Kconfig
-# packages/dependencies that do not exist in the selected stable release.
+# OpenWrt release tags already pin official feeds to immutable commits in
+# feeds.conf.default (URL^<40-char-commit>). Preserve those release-matched
+# pins exactly. Appending a branch selector to a URL that already contains
+# ^<commit> makes the feeds parser treat the commit as part of the URL.
 OPENWRT_TAG="$(git describe --tags --exact-match 2>/dev/null || true)"
 VERSION_NUMBER="${OPENWRT_TAG#v}"
-if [[ ! "$VERSION_NUMBER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+if [[ ! "$VERSION_NUMBER" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+$ ]]; then
   echo "Unable to determine an exact OpenWrt release tag from the checked-out source: '$OPENWRT_TAG'" >&2
   exit 1
 fi
-FEED_BRANCH="openwrt-${VERSION_NUMBER%.*}"
-declare -A FEED_URLS=(
-  [packages]="https://git.openwrt.org/feed/packages.git"
-  [luci]="https://git.openwrt.org/project/luci.git"
-  [routing]="https://git.openwrt.org/feed/routing.git"
-  [telephony]="https://git.openwrt.org/feed/telephony.git"
-)
 for feed in packages luci routing telephony; do
-  url="${FEED_URLS[$feed]}"
-  git ls-remote --exit-code --heads "$url" "refs/heads/$FEED_BRANCH" >/dev/null || {
-    echo "Stable feed branch $FEED_BRANCH is unavailable for $feed ($url)" >&2
-    exit 1
-  }
-
-  # Rewrite only the matching active src-git entry. Avoid shell/sed delimiter
-  # expansion around end-of-line anchors; retain the configured feed URL.
-  tmp_feeds="$(mktemp)"
-  if ! awk -v feed="$feed" -v branch="$FEED_BRANCH" '
+  if ! awk -v feed="$feed" '
     $1 == "src-git" && $2 == feed {
-      print $1, $2, $3 ";" branch
-      found = 1
-      next
+      revision = $3
+      sub(/^.*\\^/, "", revision)
+      if (revision ~ /^[0-9a-f]{40}$/) found = 1
     }
-    { print }
-    END { if (!found) exit 2 }
-  ' feeds.conf.default > "$tmp_feeds"; then
-    rm -f "$tmp_feeds"
-    echo "Active src-git entry for $feed not found in feeds.conf.default" >&2
+    END { if (!found) exit 1 }
+  ' feeds.conf.default; then
+    echo "OpenWrt release $OPENWRT_TAG does not contain an immutable commit pin for official feed '$feed'" >&2
     exit 1
   fi
-  mv "$tmp_feeds" feeds.conf.default
-
-  grep -Eq "^src-git $feed [^;[:space:]]+;$FEED_BRANCH$" feeds.conf.default || {
-    echo "Failed to pin $feed feed to $FEED_BRANCH" >&2
-    exit 1
-  }
 done
-echo "Pinned official feeds to $FEED_BRANCH for OpenWrt $VERSION_NUMBER."
+echo "Preserving the four official feed commit pins supplied by OpenWrt $OPENWRT_TAG."
 
 # Keep PassWall repositories isolated from official feeds and pinned to the
 # commits used by the last fully validated AX6600 release. Never build moving
