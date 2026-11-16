@@ -115,6 +115,11 @@ jobs:
           exec >> "$LOG" 2>&1
           cp config/ax6600.config openwrt/.config
           bash scripts/add-passwall2.sh "$GITHUB_WORKSPACE/openwrt"
+          grep -Fxq "passwall2 $PASSWALL2_SOURCE_REF" "$GITHUB_WORKSPACE/upstream-commits.txt"
+          grep -Fxq "passwall-packages $PASSWALL_PACKAGES_SOURCE_REF" "$GITHUB_WORKSPACE/upstream-commits.txt"
+          echo "Verified stable AX6600 source: $AX6600_SOURCE_REF"
+          echo "Verified stable PassWall2 source: $PASSWALL2_SOURCE_REF"
+          echo "Verified stable PassWall packages source: $PASSWALL_PACKAGES_SOURCE_REF"
           grep -q 'IPKG_INSTROOT' "$GITHUB_WORKSPACE/openwrt/package/alexwrt/passwall2/luci-app-passwall2/root/usr/share/passwall2/utils.sh"
           cd openwrt
           ./scripts/feeds update -a
