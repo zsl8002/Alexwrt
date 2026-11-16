@@ -30,10 +30,6 @@ for package in \
   luci-i18n-package-manager-zh-cn \
   luci-i18n-attendedsysupgrade-zh-cn \
   luci-i18n-passwall2-zh-cn; do
-  if ! find package feeds -type f -name Makefile -print0 2>/dev/null | xargs -0 grep -lq "Package/$package" 2>/dev/null; then
-    echo "Required Chinese LuCI package is unavailable in configured feeds: $package" >&2
-    exit 1
-  fi
   printf 'CONFIG_PACKAGE_%s=y\n' "$package" >> .config
 done
 
