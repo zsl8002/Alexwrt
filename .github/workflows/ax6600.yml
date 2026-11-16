@@ -127,7 +127,7 @@ jobs:
           bash "$GITHUB_WORKSPACE/scripts/add-argon-and-localization.sh" "$GITHUB_WORKSPACE/openwrt"
           bash "$GITHUB_WORKSPACE/scripts/patch-ax6600-compat.sh" "$GITHUB_WORKSPACE/openwrt"
           make defconfig
-          for package in luci-theme-argon luci-i18n-argon-config-zh-cn luci-i18n-base-zh-cn luci-i18n-firewall-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-passwall2-zh-cn; do
+          for package in luci-theme-argon luci-i18n-argon-config-zh-cn luci-i18n-base-zh-cn luci-i18n-firewall-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-passwall2-zh-cn luci-i18n-samba4-zh-cn; do
             grep -qx "CONFIG_PACKAGE_${package}=y" .config || {
               echo "::error::Required Argon/Chinese LuCI package was not selected: ${package}"
               exit 1
