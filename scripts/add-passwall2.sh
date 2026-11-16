@@ -9,7 +9,7 @@ cd "$ROOT"
 # ^<commit> makes the feeds parser treat the commit as part of the URL.
 OPENWRT_TAG="$(git describe --tags --exact-match 2>/dev/null || true)"
 VERSION_NUMBER="${OPENWRT_TAG#v}"
-if [[ ! "$VERSION_NUMBER" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+$ ]]; then
+if [[ ! "$VERSION_NUMBER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   echo "Unable to determine an exact OpenWrt release tag from the checked-out source: '$OPENWRT_TAG'" >&2
   exit 1
 fi
@@ -17,7 +17,7 @@ for feed in packages luci routing telephony; do
   if ! awk -v feed="$feed" '
     $1 == "src-git" && $2 == feed {
       revision = $3
-      sub(/^.*\\^/, "", revision)
+      sub(/^.*\^/, "", revision)
       if (revision ~ /^[0-9a-f]{40}$/) found = 1
     }
     END { if (!found) exit 1 }
