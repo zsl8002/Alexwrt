@@ -24,7 +24,6 @@ grep -q '^PKG_VERSION:=3.1.4$' "$DEST/Makefile"
 # pages and the bundled applications. PassWall2's own translation is mandatory.
 for package in \
   luci-theme-argon \
-  luci-i18n-argon-config-zh-cn \
   luci-i18n-base-zh-cn \
   luci-i18n-firewall-zh-cn \
   luci-i18n-package-manager-zh-cn \
