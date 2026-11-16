@@ -6,9 +6,10 @@ cd "$ROOT"
 # Keep official feeds on the same stable series as the OpenWrt source tree.
 # Mixing a stable buildroot with rolling master feeds can introduce Kconfig
 # packages/dependencies that do not exist in the selected stable release.
-VERSION_NUMBER="$(sed -n 's/^VERSION_NUMBER:=//p' include/version.mk | head -n1)"
+OPENWRT_TAG="$(git describe --tags --exact-match 2>/dev/null || true)"
+VERSION_NUMBER="${OPENWRT_TAG#v}"
 if [[ ! "$VERSION_NUMBER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "Unable to determine OpenWrt release from include/version.mk: '$VERSION_NUMBER'" >&2
+  echo "Unable to determine an exact OpenWrt release tag from the checked-out source: '$OPENWRT_TAG'" >&2
   exit 1
 fi
 FEED_BRANCH="openwrt-${VERSION_NUMBER%.*}"
