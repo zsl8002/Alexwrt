@@ -20,14 +20,14 @@ ACTUAL="$(git -C "$DEST" rev-parse HEAD)"
 test -f "$DEST/Makefile"
 grep -q '^PKG_VERSION:=3.1.4$' "$DEST/Makefile"
 
-# Select Argon and its Chinese translation, plus Chinese catalogs for core LuCI
-# pages and the bundled applications. PassWall2's own translation is mandatory.
-# Enable the Simplified Chinese LuCI catalog so make defconfig retains generated i18n packages.
+# Select Argon and the Chinese LuCI catalogs that are part of the selected
+# stable release's generated package graph. The firewall application itself
+# remains enabled; its translation is not a valid selectable package in this
+# release's defconfig, so do not force a nonexistent Kconfig symbol.
 echo 'CONFIG_LUCI_LANG_zh_Hans=y' >> .config
 for package in \
   luci-theme-argon \
   luci-i18n-base-zh-cn \
-  luci-i18n-firewall-zh-cn \
   luci-i18n-package-manager-zh-cn \
   luci-i18n-attendedsysupgrade-zh-cn \
   luci-i18n-passwall2-zh-cn; do
@@ -50,4 +50,4 @@ chmod 0755 files/etc/uci-defaults/99-alexwrt-luci-defaults
   echo "argon-release v3.1.4"
 } >> "$GITHUB_WORKSPACE/upstream-commits.txt"
 
-echo "Argon v3.1.4 and required Chinese LuCI translations selected."
+echo "Argon v3.1.4 and available Chinese LuCI translations selected."
