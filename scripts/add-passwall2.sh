@@ -26,7 +26,32 @@ for feed in packages luci routing telephony; do
     exit 1
   fi
 done
-echo "Preserving the four official feed commit pins supplied by OpenWrt $OPENWRT_TAG."
+
+# The release-pinned commits are mirrored on the official openwrt GitHub
+# repositories. Use those mirrors because git.openwrt.org returned repository
+# not found for these exact valid commits in the 2026-11-16 runner logs.
+python3 - feeds.conf.default <<'PY'
+import pathlib
+import re
+import sys
+
+path = pathlib.Path(sys.argv[1])
+text = path.read_text()
+mirrors = {
+    "packages": ("https://git.openwrt.org/feed/packages.git", "https://github.com/openwrt/packages.git"),
+    "luci": ("https://git.openwrt.org/project/luci.git", "https://github.com/openwrt/luci.git"),
+    "routing": ("https://git.openwrt.org/feed/routing.git", "https://github.com/openwrt/routing.git"),
+    "telephony": ("https://git.openwrt.org/feed/telephony.git", "https://github.com/openwrt/telephony.git"),
+}
+for feed, (old, new) in mirrors.items():
+    pattern = re.compile(rf"^(src-git\\s+{re.escape(feed)}\\s+){re.escape(old)}(\\^[0-9a-f]{{40}})$", re.M)
+    text, count = pattern.subn(rf"\\g<1>{new}\\g<2>", text)
+    if count != 1:
+        raise SystemExit(f"Expected exactly one immutable {feed} feed entry; found {count}")
+path.write_text(text)
+PY
+
+echo "Rewrote only official feed transport URLs to GitHub mirrors; immutable release pins are unchanged."
 
 # Keep PassWall repositories isolated from official feeds and pinned to the
 # commits used by the last fully validated AX6600 release. Never build moving
