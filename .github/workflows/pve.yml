@@ -104,7 +104,7 @@ jobs:
           LOG="$GITHUB_WORKSPACE/pve-build.log"
           : > "$LOG"
           trap 'status=$?; echo "::error::PVE preparation failed (exit ${status}); last build-log lines:"; tail -n 180 "$LOG" || true; exit "$status"' ERR
-          exec >> "$LOG" 2>&1
+          exec > >(tee -a "$LOG") 2>&1
           cp config/pve-x86_64.config openwrt/.config
           bash scripts/add-passwall2.sh "$GITHUB_WORKSPACE/openwrt"
           cd openwrt
