@@ -114,6 +114,7 @@ jobs:
           # their feed links are installed. Keep all official feeds; validate the
           # selected package graph with make defconfig and the completed build.
           ./scripts/feeds install -a
+          bash "$GITHUB_WORKSPACE/scripts/add-argon-and-localization.sh" "$GITHUB_WORKSPACE/openwrt"
 
           # Prosody is not selected; its current recipe references Lua 5.4
           # modules absent from this stable feed. Remove only its package link.
@@ -130,6 +131,12 @@ jobs:
           fi
 
           make defconfig
+          for package in luci-theme-argon luci-i18n-argon-config-zh-cn luci-i18n-base-zh-cn luci-i18n-firewall-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-passwall2-zh-cn; do
+            grep -qx "CONFIG_PACKAGE_${package}=y" .config || {
+              echo "::error::Required Argon/Chinese LuCI package was not selected: ${package}"
+              exit 1
+            }
+          done
           grep -qx 'GO_DEFAULT_VERSION:=1.27' feeds/packages/lang/golang/golang-values.mk
           grep -q '^CONFIG_PACKAGE_xray-core=y$' .config
           grep -q '^CONFIG_PACKAGE_luci-app-passwall2=y$' .config
