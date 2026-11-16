@@ -28,8 +28,6 @@ echo 'CONFIG_LUCI_LANG_zh_Hans=y' >> .config
 for package in \
   luci-theme-argon \
   luci-i18n-base-zh-cn \
-  luci-i18n-package-manager-zh-cn \
-  luci-i18n-attendedsysupgrade-zh-cn \
   luci-i18n-passwall2-zh-cn; do
   printf 'CONFIG_PACKAGE_%s=y\n' "$package" >> .config
 done
