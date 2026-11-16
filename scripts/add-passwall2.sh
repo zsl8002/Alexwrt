@@ -25,9 +25,25 @@ for feed in packages luci routing telephony; do
     echo "Stable feed branch $FEED_BRANCH is unavailable for $feed ($url)" >&2
     exit 1
   }
-  if ! grep -Eq "^src-git $feed [^;[:space:]]+;$FEED_BRANCH$" feeds.conf.default; then
-    sed -i -E "s#^(src-git $feed [^;[:space:]]+)(;[^[:space:]]+)?$#\\1;$FEED_BRANCH#" feeds.conf.default
+
+  # Rewrite only the matching active src-git entry. Avoid shell/sed delimiter
+  # expansion around end-of-line anchors; retain the configured feed URL.
+  tmp_feeds="$(mktemp)"
+  if ! awk -v feed="$feed" -v branch="$FEED_BRANCH" '
+    $1 == "src-git" && $2 == feed {
+      print $1, $2, $3 ";" branch
+      found = 1
+      next
+    }
+    { print }
+    END { if (!found) exit 2 }
+  ' feeds.conf.default > "$tmp_feeds"; then
+    rm -f "$tmp_feeds"
+    echo "Active src-git entry for $feed not found in feeds.conf.default" >&2
+    exit 1
   fi
+  mv "$tmp_feeds" feeds.conf.default
+
   grep -Eq "^src-git $feed [^;[:space:]]+;$FEED_BRANCH$" feeds.conf.default || {
     echo "Failed to pin $feed feed to $FEED_BRANCH" >&2
     exit 1
