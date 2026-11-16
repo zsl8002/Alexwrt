@@ -23,7 +23,7 @@ grep -q '^PKG_VERSION:=3.1.4$' "$DEST/Makefile"
 # Select Argon and its Chinese translation, plus Chinese catalogs for core LuCI
 # pages and the bundled applications. PassWall2's own translation is mandatory.
 # Enable the Simplified Chinese LuCI catalog so make defconfig retains generated i18n packages.
-printf 'CONFIG_LUCI_LANG_zh_Hans=y\\n' >> .config
+echo 'CONFIG_LUCI_LANG_zh_Hans=y' >> .config
 for package in \
   luci-theme-argon \
   luci-i18n-base-zh-cn \
