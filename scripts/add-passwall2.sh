@@ -51,7 +51,7 @@ for spec in \
 done
 
 {
-  echo "openwrt-official-feeds $FEED_BRANCH"
+  echo "openwrt-official-feeds $OPENWRT_TAG (release-pinned commits preserved)"
   echo "passwall2 $(git -C package/alexwrt/passwall2 rev-parse HEAD)"
   echo "passwall-packages $(git -C package/alexwrt/passwall-packages rev-parse HEAD)"
 } >> "$GITHUB_WORKSPACE/upstream-commits.txt"
