@@ -3,12 +3,10 @@ set -Eeuo pipefail
 ROOT="${1:?OpenWrt source directory required}"
 cd "$ROOT"
 
-# The pinned AX6600 platform source is a downstream ImmortalWrt fork commit,
-# not an exact upstream OpenWrt release tag. Its feeds.conf.default intentionally
-# uses the source project's configured feed URLs/branches. Do not infer a
-# release tag or require commit pins that this source tree does not provide.
-# The previous validated AX6600 build used this feed configuration successfully.
-echo "Using the feed configuration supplied by the pinned AX6600 source tree."
+# The platform source may be either an official tagged release or a pinned
+# downstream fork commit. Record the exact checked-out commit in both cases;
+# never depend on an optional OPENWRT_TAG environment variable.
+echo "Using checked-out OpenWrt source commit: $(git rev-parse HEAD)"
 
 # Keep PassWall repositories isolated from official feeds and pinned to the
 # commits used by the last fully validated AX6600 release. Never build moving
@@ -33,7 +31,7 @@ for spec in \
 done
 
 {
-  echo "openwrt-official-feeds $OPENWRT_TAG (release-pinned commits preserved)"
+  echo "openwrt-source $(git rev-parse HEAD)"
   echo "passwall2 $(git -C package/alexwrt/passwall2 rev-parse HEAD)"
   echo "passwall-packages $(git -C package/alexwrt/passwall-packages rev-parse HEAD)"
 } >> "$GITHUB_WORKSPACE/upstream-commits.txt"
