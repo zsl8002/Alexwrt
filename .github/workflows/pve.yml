@@ -215,7 +215,7 @@ jobs:
           TAG="pve-${{ steps.version.outputs.ref }}-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
           gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --title "AlexWrt PVE x86_64 $TAG" --notes 'OpenWrt stable base with PassWall2 source integration. ImmortalWrt feed overlay requires per-package compatibility validation.'
  .config || {
-            echo "::error::LuCI firewall application is not available in the selected configuration."
+            echo "::error::LuCI firewall application is not selected in the final configuration."
             echo "Matching configuration:"
             grep -E '^CONFIG_PACKAGE_luci-app-firewall=' .config || true
             exit 1
