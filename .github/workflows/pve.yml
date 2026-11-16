@@ -113,7 +113,7 @@ jobs:
           # command fail. Verify every release-pinned official feed before
           # scanning package metadata or proceeding to defconfig.
           for feed in packages luci routing telephony; do
-            expected="$(awk -v feed="$feed" '$1 == "src-git" && $2 == feed { sub(/^.*\\^/, "", $3); print $3 }' feeds.conf.default)"
+            expected="$(awk -v feed="$feed" '$1 == "src-git" && $2 == feed { sub(/^.*\^/, "", $3); print $3 }' feeds.conf.default)"
             if [ -z "$expected" ] || [ ! -d "feeds/$feed/.git" ]; then
               echo "::error::Official feed '$feed' was not cloned."
               exit 1
