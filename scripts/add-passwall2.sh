@@ -3,55 +3,12 @@ set -Eeuo pipefail
 ROOT="${1:?OpenWrt source directory required}"
 cd "$ROOT"
 
-# OpenWrt release tags already pin official feeds to immutable commits in
-# feeds.conf.default (URL^<40-char-commit>). Preserve those release-matched
-# pins exactly. Appending a branch selector to a URL that already contains
-# ^<commit> makes the feeds parser treat the commit as part of the URL.
-OPENWRT_TAG="$(git describe --tags --exact-match 2>/dev/null || true)"
-VERSION_NUMBER="${OPENWRT_TAG#v}"
-if [[ ! "$VERSION_NUMBER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "Unable to determine an exact OpenWrt release tag from the checked-out source: '$OPENWRT_TAG'" >&2
-  exit 1
-fi
-for feed in packages luci routing telephony; do
-  if ! awk -v feed="$feed" '
-    $1 == "src-git" && $2 == feed {
-      revision = $3
-      sub(/^.*\^/, "", revision)
-      if (revision ~ /^[0-9a-f]{40}$/) found = 1
-    }
-    END { if (!found) exit 1 }
-  ' feeds.conf.default; then
-    echo "OpenWrt release $OPENWRT_TAG does not contain an immutable commit pin for official feed '$feed'" >&2
-    exit 1
-  fi
-done
-
-# The release-pinned commits are mirrored on the official openwrt GitHub
-# repositories. Use those mirrors because git.openwrt.org returned repository
-# not found for these exact valid commits in the 2026-11-16 runner logs.
-python3 - feeds.conf.default <<'PY'
-import pathlib
-import re
-import sys
-
-path = pathlib.Path(sys.argv[1])
-text = path.read_text()
-mirrors = {
-    "packages": ("https://git.openwrt.org/feed/packages.git", "https://github.com/openwrt/packages.git"),
-    "luci": ("https://git.openwrt.org/project/luci.git", "https://github.com/openwrt/luci.git"),
-    "routing": ("https://git.openwrt.org/feed/routing.git", "https://github.com/openwrt/routing.git"),
-    "telephony": ("https://git.openwrt.org/feed/telephony.git", "https://github.com/openwrt/telephony.git"),
-}
-for feed, (old, new) in mirrors.items():
-    pattern = re.compile(rf"^(src-git\s+{re.escape(feed)}\s+){re.escape(old)}(\^[0-9a-f]{{40}})$", re.M)
-    text, count = pattern.subn(rf"\g<1>{new}\g<2>", text)
-    if count != 1:
-        raise SystemExit(f"Expected exactly one immutable {feed} feed entry; found {count}")
-path.write_text(text)
-PY
-
-echo "Rewrote only official feed transport URLs to GitHub mirrors; immutable release pins are unchanged."
+# The pinned AX6600 platform source is a downstream ImmortalWrt fork commit,
+# not an exact upstream OpenWrt release tag. Its feeds.conf.default intentionally
+# uses the source project's configured feed URLs/branches. Do not infer a
+# release tag or require commit pins that this source tree does not provide.
+# The previous validated AX6600 build used this feed configuration successfully.
+echo "Using the feed configuration supplied by the pinned AX6600 source tree."
 
 # Keep PassWall repositories isolated from official feeds and pinned to the
 # commits used by the last fully validated AX6600 release. Never build moving
