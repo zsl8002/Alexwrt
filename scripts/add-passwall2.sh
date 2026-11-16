@@ -44,8 +44,8 @@ mirrors = {
     "telephony": ("https://git.openwrt.org/feed/telephony.git", "https://github.com/openwrt/telephony.git"),
 }
 for feed, (old, new) in mirrors.items():
-    pattern = re.compile(rf"^(src-git\\s+{re.escape(feed)}\\s+){re.escape(old)}(\\^[0-9a-f]{{40}})$", re.M)
-    text, count = pattern.subn(rf"\\g<1>{new}\\g<2>", text)
+    pattern = re.compile(rf"^(src-git\s+{re.escape(feed)}\s+){re.escape(old)}(\^[0-9a-f]{{40}})$", re.M)
+    text, count = pattern.subn(rf"\g<1>{new}\g<2>", text)
     if count != 1:
         raise SystemExit(f"Expected exactly one immutable {feed} feed entry; found {count}")
 path.write_text(text)
