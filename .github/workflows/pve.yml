@@ -147,11 +147,24 @@ jobs:
           fi
 
           make defconfig
-          for package in luci-theme-argon luci-i18n-base-zh-cn luci-i18n-firewall-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-passwall2-zh-cn; do
-            grep -qx "CONFIG_PACKAGE_${package}=y" .config || {
-              echo "::error::Required Argon/Chinese LuCI package was not selected: ${package}"
+          # Argon must be built into the image. LuCI language catalogs are
+          # tristate packages: stable Kconfig may retain a catalog as =m.
+          grep -qx 'CONFIG_PACKAGE_luci-theme-argon=y' .config || {
+            echo "::error::Argon theme is not selected as a built-in package."
+            exit 1
+          }
+          grep -qx 'CONFIG_PACKAGE_luci-app-firewall=y' .config || {
+            echo "::error::LuCI firewall application is not selected."
+            exit 1
+          }
+          for package in luci-i18n-base-zh-cn luci-i18n-firewall-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-passwall2-zh-cn; do
+            grep -Eq "^CONFIG_PACKAGE_${package}=(y|m)$" .config || {
+              echo "::error::Required Chinese LuCI catalog is unavailable: ${package}"
+              echo "Matching configuration:"
+              grep -E "^CONFIG_PACKAGE_${package}=" .config || true
               exit 1
             }
+            grep -E "^CONFIG_PACKAGE_${package}=" .config
           done
           grep -qx 'GO_DEFAULT_VERSION:=1.27' feeds/packages/lang/golang/golang-values.mk
           grep -q '^CONFIG_PACKAGE_xray-core=y$' .config
