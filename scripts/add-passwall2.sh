@@ -3,6 +3,37 @@ set -Eeuo pipefail
 ROOT="${1:?OpenWrt source directory required}"
 cd "$ROOT"
 
+# Keep official feeds on the same stable series as the OpenWrt source tree.
+# Mixing a stable buildroot with rolling master feeds can introduce Kconfig
+# packages/dependencies that do not exist in the selected stable release.
+VERSION_NUMBER="$(sed -n 's/^VERSION_NUMBER:=//p' include/version.mk | head -n1)"
+if [[ ! "$VERSION_NUMBER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "Unable to determine OpenWrt release from include/version.mk: '$VERSION_NUMBER'" >&2
+  exit 1
+fi
+FEED_BRANCH="openwrt-${VERSION_NUMBER%.*}"
+declare -A FEED_URLS=(
+  [packages]="https://git.openwrt.org/feed/packages.git"
+  [luci]="https://git.openwrt.org/project/luci.git"
+  [routing]="https://git.openwrt.org/feed/routing.git"
+  [telephony]="https://git.openwrt.org/feed/telephony.git"
+)
+for feed in packages luci routing telephony; do
+  url="${FEED_URLS[$feed]}"
+  git ls-remote --exit-code --heads "$url" "refs/heads/$FEED_BRANCH" >/dev/null || {
+    echo "Stable feed branch $FEED_BRANCH is unavailable for $feed ($url)" >&2
+    exit 1
+  }
+  if ! grep -Eq "^src-git $feed [^;[:space:]]+;$FEED_BRANCH$" feeds.conf.default; then
+    sed -i -E "s#^(src-git $feed [^;[:space:]]+)(;[^[:space:]]+)?$#\\1;$FEED_BRANCH#" feeds.conf.default
+  fi
+  grep -Eq "^src-git $feed [^;[:space:]]+;$FEED_BRANCH$" feeds.conf.default || {
+    echo "Failed to pin $feed feed to $FEED_BRANCH" >&2
+    exit 1
+  }
+done
+echo "Pinned official feeds to $FEED_BRANCH for OpenWrt $VERSION_NUMBER."
+
 # Keep PassWall repositories isolated from official feeds and pinned to the
 # commits used by the last fully validated AX6600 release. Never build moving
 # main/master heads implicitly.
@@ -26,6 +57,7 @@ for spec in \
 done
 
 {
+  echo "openwrt-official-feeds $FEED_BRANCH"
   echo "passwall2 $(git -C package/alexwrt/passwall2 rev-parse HEAD)"
   echo "passwall-packages $(git -C package/alexwrt/passwall-packages rev-parse HEAD)"
 } >> "$GITHUB_WORKSPACE/upstream-commits.txt"
@@ -59,4 +91,3 @@ else
 fi
 
 # Build from source; never bypass APK/IPK repository signature verification.
-
