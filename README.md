@@ -39,3 +39,9 @@ Actions 构建成功后上传固件、最终 .config、上游 commit 清单和 S
 
 ## 状态说明
 这是首版自动构建骨架。第一次 Actions 运行会实际验证上游分支、目标 profile、包名和内核 ABI。当前尚未完成真实设备刷机验证；AX6600 factory 镜像仅在上游确实生成并通过文件检查时发布。
+
+## LuCI 中文界面与 Argon 主题
+
+AX6600 与 PVE 两条构建线均集成上游 Argon 主题，固定到已发布的 v3.1.4 对应源码提交 `c5c0873e122dc767c7ab0198c8bffc6e952b5cfb`，不直接跟随滚动分支。首次启动时通过 UCI defaults 将 LuCI 默认语言设为简体中文（`zh_cn`），默认主题设为 Argon（`/luci-static/argon`）。
+
+固件预装 LuCI 基础中文语言包、Firewall、软件包管理器、Attended Sysupgrade、Argon 配置页和 PassWall2 中文语言包；AX6600 额外包含 Samba4 中文语言包。翻译包是否可用由构建阶段的最终 `.config` 检查验证。第三方插件只有在上游提供对应简体中文 PO 翻译时才能完整汉化；没有上游中文目录的插件仍会显示其原始语言，不会伪造翻译包。
