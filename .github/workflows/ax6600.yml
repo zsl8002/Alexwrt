@@ -7,6 +7,11 @@ on:
     paths: ['.github/workflows/ax6600.yml', 'config/ax6600.config', 'scripts/**']
 permissions:
   contents: write
+env:
+  # Immutable, previously build- and release-validated AX6600 source baseline.
+  AX6600_SOURCE_REF: 0b433e656fd6886aa2f32f923c8d2d8dfc94835e
+  PASSWALL2_SOURCE_REF: dd77a236c7ee46b2b3899e1951668fdc88c13c57
+  PASSWALL_PACKAGES_SOURCE_REF: b094b79c32ac4e4de3113a5c44971c6182eee535
 concurrency:
   group: ax6600-build
   cancel-in-progress: false
@@ -92,9 +97,15 @@ jobs:
       - name: Clone IPQ platform source
         run: |
           set -Eeuo pipefail
-          git clone --depth 1 https://github.com/ones20250/immortalwrt_ipq.git openwrt
-          cd openwrt
-          git log -1 --format='%H %s' > "$GITHUB_WORKSPACE/base-commit.txt"
+          git clone --no-checkout --depth 1 https://github.com/ones20250/immortalwrt_ipq.git openwrt
+          git -C openwrt fetch --depth 1 origin "$AX6600_SOURCE_REF"
+          git -C openwrt checkout --detach FETCH_HEAD
+          ACTUAL_REF="$(git -C openwrt rev-parse HEAD)"
+          if [ "$ACTUAL_REF" != "$AX6600_SOURCE_REF" ]; then
+            echo "::error::AX6600 source did not resolve to the pinned stable commit."
+            exit 1
+          fi
+          git -C openwrt log -1 --format='%H %s' > "$GITHUB_WORKSPACE/base-commit.txt"
       - name: Integrate PassWall2 and configure
         run: |
           set -Eeuo pipefail
