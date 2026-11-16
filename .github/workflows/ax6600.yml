@@ -112,7 +112,7 @@ jobs:
           LOG="$GITHUB_WORKSPACE/ax6600-build.log"
           : > "$LOG"
           trap 'status=$?; tail -n 160 "$LOG"; exit "$status"' ERR
-          exec >> "$LOG" 2>&1
+          exec > >(tee -a "$LOG") 2>&1
           cp config/ax6600.config openwrt/.config
           bash scripts/add-passwall2.sh "$GITHUB_WORKSPACE/openwrt"
           grep -Fxq "passwall2 $PASSWALL2_SOURCE_REF" "$GITHUB_WORKSPACE/upstream-commits.txt"
